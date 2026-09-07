@@ -64,6 +64,10 @@ The wire format should be a decision, not a consequence of the persistence model
 **jaudiotagger is confined to `AudioTagReader`.** It is unmaintained (3.0.1, 2021). Keeping it
 behind one class means replacing it touches one file. Do not import it anywhere else.
 
+**Not every test needs Spring.** `AudioFileStoreTest` touches the filesystem but not the database,
+so it is a plain JUnit test with `@TempDir` and runs in milliseconds. Only use
+`PostgresIntegrationTest` when the test genuinely needs the database.
+
 **Tests use a real PostgreSQL** via Testcontainers, shared across the run through Spring's test
 context cache. Do not substitute H2 or an in-memory database; the schema uses Postgres-specific
 features and the point of these tests is that the migrations actually work.
