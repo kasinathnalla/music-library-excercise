@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.UUID;
 
 @Service
 public class IngestService {
@@ -30,8 +31,17 @@ public class IngestService {
         this.artists = artists;
     }
 
+    /**
+     * Ingest with no uploader recorded. Used by {@link SeedRunner}, which runs at boot with no
+     * authenticated user present.
+     */
     @Transactional
     public IngestResult ingest(InputStream audio, String originalFilename) {
+        return ingest(audio, originalFilename, null);
+    }
+
+    @Transactional
+    public IngestResult ingest(InputStream audio, String originalFilename, UUID uploaderId) {
         StoredAudio stored = fileStore.store(audio, originalFilename);
 
         tracks.findByContentHash(stored.contentHash()).ifPresent(existing -> {
@@ -54,6 +64,7 @@ public class IngestService {
                 stored.size(),
                 contentTypeFor(stored.relativePath()),
                 stored.contentHash()));
+        track.setUploadedBy(uploaderId);
 
         return new IngestResult(track.getId(), track.getTitle());
     }

@@ -1,0 +1,57 @@
+<section class="signin">
+  <p class="eyebrow">Music Library</p>
+  <h1>Sign in</h1>
+  <p class="lede">
+    The library is shared. Admins add and correct music; everyone else browses and listens.
+  </p>
+
+  <form (submit)="submit($event)" novalidate>
+    <label for="username">Username</label>
+    <input
+      id="username"
+      name="username"
+      type="text"
+      autocomplete="username"
+      autocapitalize="none"
+      spellcheck="false"
+      required
+      [value]="username()"
+      (input)="onUsername($event)"
+    />
+
+    <label for="password">Password</label>
+    <input
+      id="password"
+      name="password"
+      type="password"
+      autocomplete="current-password"
+      required
+      [value]="password()"
+      (input)="onPassword($event)"
+    />
+
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+
+    <button type="submit" class="cta" [disabled]="submitting() || !username() || !password()">
+      {{ submitting() ? 'Signing in…' : 'Sign in' }}
+    </button>
+  </form>
+
+  <details class="demo-accounts">
+    <summary>Accounts for trying this out</summary>
+    <table>
+      <thead>
+        <tr><th scope="col">Username</th><th scope="col">Password</th><th scope="col">Can</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>admin</code></td><td><code>admin</code></td><td>Upload, edit, delete, and listen</td></tr>
+        <tr><td><code>customer</code></td><td><code>customer</code></td><td>Browse, search, and listen</td></tr>
+      </tbody>
+    </table>
+    <p class="note">
+      Seeded on first run. Change them before this is anything other than a local exercise.
+    </p>
+  </details>
+</section>

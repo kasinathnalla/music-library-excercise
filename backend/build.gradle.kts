@@ -40,6 +40,8 @@ tasks.withType<Test> {
 	useJUnitPlatform()
 }
 dependencies {
+	implementation("org.springframework.boot:spring-boot-starter-security")
+	testImplementation("org.springframework.security:spring-security-test")
 	implementation("net.jthink:jaudiotagger:3.0.1")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
 }

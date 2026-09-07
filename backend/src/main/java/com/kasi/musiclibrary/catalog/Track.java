@@ -43,6 +43,16 @@ public class Track {
     @Column(nullable = false, insertable = false, updatable = false)
     private Instant addedAt;
 
+    /**
+     * Who uploaded this, or null for the tracks seeded at boot, when no user is authenticated.
+     *
+     * <p>A raw id rather than a ManyToOne on purpose: open-in-view is off, and an association
+     * here would be one more lazy proxy that a response could touch after the session closed.
+     * Nothing reads this column yet.
+     */
+    @Column(name = "uploaded_by")
+    private UUID uploadedBy;
+
     protected Track() {
     }
 
@@ -118,5 +128,13 @@ public class Track {
 
     public Instant getAddedAt() {
         return addedAt;
+    }
+
+    public UUID getUploadedBy() {
+        return uploadedBy;
+    }
+
+    public void setUploadedBy(UUID uploadedBy) {
+        this.uploadedBy = uploadedBy;
     }
 }

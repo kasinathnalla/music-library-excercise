@@ -12,10 +12,12 @@
       [value]="query()"
       (input)="onSearch($event)"
     />
-    <label class="upload">
-      Add music
-      <input type="file" accept="audio/*" (change)="onUpload($event)" />
-    </label>
+    @if (auth.isAdmin()) {
+      <label class="upload">
+        Add music
+        <input type="file" accept="audio/*" (change)="onUpload($event)" />
+      </label>
+    }
   </div>
 </header>
 
@@ -30,7 +32,11 @@
     @if (query()) {
       Nothing matches “{{ query() }}”.
     } @else {
-      Nothing here yet. Use <strong>Add music</strong> to bring in an audio file.
+      @if (auth.isAdmin()) {
+        Nothing here yet. Use <strong>Add music</strong> to bring in an audio file.
+      } @else {
+        Nothing here yet. An admin needs to add some music.
+      }
     }
   </p>
 } @else {
@@ -46,7 +52,9 @@
         <th scope="col">Artist</th>
         <th scope="col" class="col-hide">Album</th>
         <th scope="col">Length</th>
-        <th scope="col" class="col-actions"><span class="visually-hidden">Actions</span></th>
+        @if (auth.isAdmin()) {
+          <th scope="col" class="col-actions"><span class="visually-hidden">Actions</span></th>
+        }
       </tr>
     </thead>
     <tbody>
@@ -79,41 +87,43 @@
             }
           </td>
           <td class="num">{{ formatDuration(track.durationMs) }}</td>
-          <td class="col-actions">
-            @if (pendingDeleteId() === track.id) {
-              <span class="confirm" role="group" [attr.aria-label]="'Confirm removing ' + track.title">
-                <span class="confirm-label">Remove?</span>
-                <button
-                  type="button"
-                  class="confirm-yes"
-                  [disabled]="deletingId() === track.id"
-                  (click)="confirmDelete(track)"
-                >
-                  {{ deletingId() === track.id ? 'Removing…' : 'Yes' }}
-                </button>
-                <button type="button" class="confirm-no" (click)="cancelDelete()">No</button>
-              </span>
-            } @else {
-              <span class="row-actions">
-                <button
-                  type="button"
-                  class="row-action"
-                  (click)="edit(track)"
-                  [attr.aria-label]="'Edit ' + track.title"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  class="row-action danger"
-                  (click)="askDelete(track)"
-                  [attr.aria-label]="'Remove ' + track.title + ' from the library'"
-                >
-                  Delete
-                </button>
-              </span>
-            }
-          </td>
+          @if (auth.isAdmin()) {
+            <td class="col-actions">
+              @if (pendingDeleteId() === track.id) {
+                <span class="confirm" role="group" [attr.aria-label]="'Confirm removing ' + track.title">
+                  <span class="confirm-label">Remove?</span>
+                  <button
+                    type="button"
+                    class="confirm-yes"
+                    [disabled]="deletingId() === track.id"
+                    (click)="confirmDelete(track)"
+                  >
+                    {{ deletingId() === track.id ? 'Removing…' : 'Yes' }}
+                  </button>
+                  <button type="button" class="confirm-no" (click)="cancelDelete()">No</button>
+                </span>
+              } @else {
+                <span class="row-actions">
+                  <button
+                    type="button"
+                    class="row-action"
+                    (click)="edit(track)"
+                    [attr.aria-label]="'Edit ' + track.title"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="row-action danger"
+                    (click)="askDelete(track)"
+                    [attr.aria-label]="'Remove ' + track.title + ' from the library'"
+                  >
+                    Delete
+                  </button>
+                </span>
+              }
+            </td>
+          }
         </tr>
       }
     </tbody>

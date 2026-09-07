@@ -3,15 +3,14 @@ package com.kasi.musiclibrary.api;
 import com.kasi.musiclibrary.catalog.AlbumRepository;
 import com.kasi.musiclibrary.catalog.ArtistRepository;
 import com.kasi.musiclibrary.catalog.TrackRepository;
-import com.kasi.musiclibrary.support.PostgresIntegrationTest;
+import com.kasi.musiclibrary.support.SecuredMockMvcTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,10 +23,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class TrackEditTest extends PostgresIntegrationTest {
+/**
+ * Runs as an admin. These are catalog tests, not authorization tests: they assert what the
+ * endpoints do, and {@link com.kasi.musiclibrary.security.AuthorizationMatrixTest} asserts who
+ * may reach them. A mock user is used rather than the seeded accounts so that this file does
+ * not also depend on what V3 inserted.
+ */
+@WithMockUser(roles = "ADMIN")
+class TrackEditTest extends SecuredMockMvcTest {
 
-	@Autowired
-	private WebApplicationContext context;
 	@Autowired
 	private TrackRepository tracks;
 	@Autowired
@@ -35,12 +39,10 @@ class TrackEditTest extends PostgresIntegrationTest {
 	@Autowired
 	private ArtistRepository artists;
 
-	private MockMvc mockMvc;
 	private byte[] tagged;
 
 	@BeforeEach
 	void setUp() throws Exception {
-		mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
 		tracks.deleteAll();
 		albums.deleteAll();
 		artists.deleteAll();

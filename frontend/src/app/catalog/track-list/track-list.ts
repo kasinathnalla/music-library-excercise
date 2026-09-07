@@ -2,6 +2,7 @@ import { Component, inject, output, signal } from '@angular/core';
 import { TrackService } from '../track.service';
 import { Track } from '../track.model';
 import { TrackEditDialog } from '../track-edit/track-edit';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-track-list',
@@ -11,6 +12,12 @@ import { TrackEditDialog } from '../track-edit/track-edit';
 })
 export class TrackList {
   private readonly trackService = inject(TrackService);
+
+  /**
+   * Used only to decide what to show. The server is the actual boundary: a customer who
+   * reached these endpoints another way is refused there, not here.
+   */
+  protected readonly auth = inject(AuthService);
 
   readonly back = output<void>();
   readonly libraryChanged = output<void>();

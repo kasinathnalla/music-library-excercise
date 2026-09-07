@@ -6,6 +6,7 @@ import com.kasi.musiclibrary.catalog.TrackRepository;
 import com.kasi.musiclibrary.ingest.IngestResult;
 import com.kasi.musiclibrary.ingest.IngestService;
 import com.kasi.musiclibrary.provenance.ProvenanceService;
+import com.kasi.musiclibrary.security.AppUserPrincipal;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,6 +58,19 @@ public class TrackController {
         this.provenance = provenance;
     }
 
+    /**
+     * The uploader's id, or null when the principal does not carry one.
+     *
+     * <p>Null is a real case rather than defensive noise: catalog tests authenticate with a
+     * mock user that has no database row behind it, and uploaded_by is nullable for exactly
+     * that reason.
+     */
+    private UUID uploaderId(Authentication authentication) {
+        return authentication != null && authentication.getPrincipal() instanceof AppUserPrincipal p
+                ? p.id()
+                : null;
+    }
+
     private TrackResponse withProvenance(com.kasi.musiclibrary.catalog.Track track) {
         return TrackResponse.from(track,
                 provenance.userEditedFields(ProvenanceService.TRACK, track.getId()));
@@ -80,12 +95,14 @@ public class TrackController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping
-    public ResponseEntity<TrackResponse> upload(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<TrackResponse> upload(@RequestParam("file") MultipartFile file,
+                                                Authentication authentication) {
         if (file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The uploaded file is empty");
         }
         try (var stream = file.getInputStream()) {
-            IngestResult result = ingest.ingest(stream, file.getOriginalFilename());
+            IngestResult result = ingest.ingest(stream, file.getOriginalFilename(),
+                    uploaderId(authentication));
             TrackResponse body = withProvenance(tracks.findByIdWithAlbum(result.trackId()).orElseThrow());
             return ResponseEntity.status(HttpStatus.CREATED).body(body);
         } catch (IOException e) {
