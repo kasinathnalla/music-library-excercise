@@ -4,7 +4,8 @@ A self-contained music library that ingests your own audio files, reads their em
 real artist and album records, searches across the catalog, streams playback with working seek, and
 lets you remove things again.
 
-No third-party music service, no account, and no API keys. The application is its own API.
+No third-party music service and no API keys. The application is its own API and its own
+identity provider: sign in with one of the seeded accounts below.
 
 ---
 
@@ -18,11 +19,22 @@ cd music-library-exercise
 docker compose up --build
 ```
 
-Then open **<http://localhost:8080>**.
+Then open **<http://localhost:8080>** and sign in.
+
+| Username | Password | Can |
+|---|---|---|
+| `admin` | `admin` | Upload, correct metadata, delete, and listen |
+| `customer` | `customer` | Browse, search, and listen |
+
+Seeded by a database migration on first boot, alongside the six starter tracks, so there is
+something to sign in to and something to listen to immediately. These are demo credentials for a
+local exercise, not production ones — see [Deliberate limitations](#deliberate-limitations).
+
+No account yet? The sign-in screen has a **Create an account** link. Self-registration always
+creates a listener account — there is no way to request an admin account through it.
 
 First build takes a few minutes (it downloads Node, a JDK, and the Gradle dependencies). Later
-builds are cached and take seconds. The app starts with six tracks already loaded, so there is
-something to look at immediately.
+builds are cached and take seconds.
 
 | What | Where |
 |---|---|
@@ -109,6 +121,14 @@ alone. Edits change the library only; the tags inside your audio files are never
 album with no remaining tracks is removed, and an artist credited on no remaining albums goes with
 it. This is permanent; there is no undo in this version.
 
+**Accounts and roles.** Two roles: an **admin** curates the library (upload, edit, delete); a
+**customer** browses, searches, and listens, and nothing else. Two accounts of each are seeded on
+first boot, and anyone can create a customer account from the sign-in screen — admin accounts are
+provisioned directly against the database, not through the app. Signing in is HTTP Basic; the app
+turns that into a session so that the browser's own audio requests (seeking included) are
+authenticated without needing a header attached to them. There is no password reset and no
+TLS — see [Deliberate limitations](#deliberate-limitations).
+
 ---
 
 ## Documents in this repository
@@ -120,8 +140,9 @@ it. This is permanent; there is no undo in this version.
 | `docs/ARCHITECTURE.md` | Diagrams: deployment, components, data model, and the key interaction and state flows |
 | `docs/USE-CASES.md` | What the system does from a user's point of view, with the test behind each case |
 | `docs/QUESTIONS.md` | The clarifying questions I would have asked, each with the default I proceeded on |
-| `docs/plans/ROADMAP.md` | The five-phase plan, why it is ordered that way, and what gets cut first |
+| `docs/plans/ROADMAP.md` | The phase plan, why it is ordered that way, and what gets cut first |
 | `docs/plans/01-foundation-and-library.md` | The full Phase 1 implementation plan, task by task |
+| `docs/plans/06-users-and-auth.md` | The users-and-roles implementation plan: why Basic auth becomes a session, and why editing is admin-only |
 | `docs/api/openapi.json` / `.yaml` | The generated OpenAPI 3.1 spec, committed so it can be read without running anything |
 | `docs/DECISIONS.md` | The design decisions that had real alternatives, and why each went the way it did |
 | `backend/src/main/resources/seed-audio/CREDITS.md` | Where the bundled audio came from |
@@ -168,8 +189,15 @@ detection, Vitest.
 Called out because they are choices, not oversights. The reasoning for each is in
 `docs/QUESTIONS.md` and `docs/DECISIONS.md`.
 
-- **Single user, no authentication.** The schema carries an owner concept so multi-user is not a
-  rewrite, but there is no login.
+- **Customer self-registration only.** Anyone can create a customer account from the sign-in
+  screen; an admin account is always provisioned directly against the database. There is no
+  password change or reset, and no account lockout after failed attempts. Good enough to
+  demonstrate a real authorization boundary, not a production identity system.
+- **Basic auth over plain HTTP.** The password is sent on every sign-in request with nothing
+  encrypting the connection, because there is no TLS in front of this exercise. Fine for a local
+  demo; a real deployment needs HTTPS in front of it before this scheme is safe to use as-is.
+- **One shared library, not one library per customer.** Every signed-in user sees the same
+  catalog. `track.uploaded_by` records who added a row, but nothing filters on it yet.
 - **Tag edits do not write back to files.** Edits change the database only. Writing tags into the
   user's actual files is what iTunes and MusicBrainz Picard do and it makes edits portable, but it
   also means destructive writes to files people care about. The trade-off is discussed in Q13 and

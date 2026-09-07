@@ -1,0 +1,66 @@
+<section class="signin">
+  <p class="eyebrow">Music Library</p>
+  <h1>Create an account</h1>
+  <p class="lede">
+    Self-registration creates a listener account: browse, search, and play. Adding music is done
+    from an admin account, provisioned separately.
+  </p>
+
+  <form (submit)="submit($event)" novalidate>
+    <label for="reg-username">Username</label>
+    <input
+      id="reg-username"
+      name="username"
+      type="text"
+      autocomplete="username"
+      autocapitalize="none"
+      spellcheck="false"
+      minlength="3"
+      maxlength="64"
+      required
+      [value]="username()"
+      (input)="onUsername($event)"
+    />
+
+    <label for="reg-password">Password</label>
+    <input
+      id="reg-password"
+      name="password"
+      type="password"
+      autocomplete="new-password"
+      minlength="6"
+      required
+      [value]="password()"
+      (input)="onPassword($event)"
+    />
+
+    <label for="reg-confirm">Confirm password</label>
+    <input
+      id="reg-confirm"
+      name="confirm"
+      type="password"
+      autocomplete="new-password"
+      minlength="6"
+      required
+      [value]="confirm()"
+      (input)="onConfirm($event)"
+    />
+
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+
+    <button
+      type="submit"
+      class="cta"
+      [disabled]="submitting() || !username() || !password() || !confirm()"
+    >
+      {{ submitting() ? 'Creating account…' : 'Create account' }}
+    </button>
+  </form>
+
+  <p class="switch">
+    Already have an account?
+    <button type="button" class="link-button" (click)="backToSignIn.emit()">Sign in</button>
+  </p>
+</section>

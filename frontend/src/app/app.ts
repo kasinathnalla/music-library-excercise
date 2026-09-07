@@ -2,17 +2,20 @@ import { Component, inject, signal } from '@angular/core';
 import { TrackList } from './catalog/track-list/track-list';
 import { Welcome } from './welcome/welcome';
 import { Login } from './auth/login/login';
+import { Register } from './auth/register/register';
 import { TrackService } from './catalog/track.service';
 import { AuthService } from './auth/auth.service';
 import { LibraryStats } from './catalog/stats.model';
 
 @Component({
   selector: 'app-root',
-  imports: [TrackList, Welcome, Login],
+  imports: [TrackList, Welcome, Login, Register],
   styleUrl: './app.css',
   template: `
     @if (view() === 'login') {
-      <app-login (signedIn)="onSignedIn()" />
+      <app-login (signedIn)="onSignedIn()" (createAccount)="view.set('register')" />
+    } @else if (view() === 'register') {
+      <app-register (registered)="onSignedIn()" (backToSignIn)="view.set('login')" />
     } @else {
       @if (auth.user(); as user) {
         <div class="account-bar">
@@ -38,7 +41,7 @@ export class App {
   private readonly trackService = inject(TrackService);
   protected readonly auth = inject(AuthService);
 
-  protected readonly view = signal<'login' | 'welcome' | 'library'>('login');
+  protected readonly view = signal<'login' | 'register' | 'welcome' | 'library'>('login');
   protected readonly stats = signal<LibraryStats | null>(null);
 
   constructor() {

@@ -84,10 +84,17 @@ together. Arrows are dependency direction.
 
 ```mermaid
 graph TD
+    subgraph security["security - the authorization matrix"]
+        SEC["SecurityConfig<br/>the filter chain"]
+        DUD["DatabaseUserDetailsService"]
+        USERS["AppUserRepository"]
+    end
+
     subgraph api["api - HTTP only, no business logic"]
         TC["TrackController"]
         SC["StreamController"]
         STC["StatsController"]
+        AC["AuthController<br/>sign-in status, registration, logout"]
         EH["ApiExceptionHandler"]
     end
 
@@ -97,6 +104,14 @@ graph TD
         AFS["AudioFileStore<br/>hashing, sharding, path guard"]
         SR["SeedRunner"]
     end
+
+    SEC -.->|"authorizes every request<br/>before it reaches api"| TC
+    SEC -.-> SC
+    SEC -.-> AC
+    SEC --> DUD
+    DUD --> USERS
+    AC --> USERS
+    TC -->|"records the uploader"| USERS
 
     subgraph catalog["catalog - the domain"]
         TUS["TrackUpdateService"]
@@ -142,6 +157,11 @@ The two highlighted classes are the isolation boundaries that matter:
 
 `catalog` knows nothing about HTTP or files. `api` holds no logic, so the wire format can change
 without disturbing the domain.
+
+**`security`** holds the whole authorization boundary in one place: `SecurityConfig` is the URL
+matrix (who may reach what), and it is deliberately not method-level annotations scattered across
+`ingest` and `catalog`, because `SeedRunner` ingests the bundled tracks at boot with no
+authenticated user present. See D15.
 
 ---
 
@@ -388,6 +408,15 @@ sequenceDiagram
 
 Without `Accept-Ranges`, the browser plays from the start but the scrubber does nothing, which is
 the kind of half-working that is worse than an absent feature.
+
+**Not shown above, and worth stating explicitly: every request to this endpoint requires an
+authenticated session.** The browser's audio element cannot attach an `Authorization` header to
+the `Range` requests it issues on its own, so authentication happens once, at sign-in, via HTTP
+Basic, and the resulting security context is persisted to an HTTP session
+(`HttpSessionSecurityContextRepository`, configured explicitly in `SecurityConfig`). The session
+cookie is what authenticates every request in the sequence above, including the ranged one the
+browser sends unprompted while the user drags the scrubber. See D16 for why, and
+`SessionAuthenticationTest.theSessionAloneAuthenticatesTheAudioRequest` for the regression guard.
 
 ---
 

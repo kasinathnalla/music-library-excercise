@@ -52,7 +52,8 @@ the API without credentials, and the login screen has to be servable to someone 
 
 Recorded here so the next reader does not mistake a deliberate floor for an oversight.
 
-- **No signup.** Accounts are seeded by migration. Creating users through the API is a later phase.
+- **No admin signup.** Only the CUSTOMER role can self-register (Task 11); an admin account is
+  always provisioned directly against the database, the same way the seeded accounts are.
 - **No password change, reset, or lockout.** No rate limiting on failed logins.
 - **One role per user**, not a set. The schema note in Task 2 says what changes when that stops
   being true.
@@ -750,6 +751,90 @@ having written them.
 
 ---
 
+## Task 11: Self-registration, customer only
+
+Added after the rest of this phase landed, once it was clear the login screen needed somewhere to
+send someone who does not have an account yet. Deliberately narrow: it grows the CUSTOMER
+population, not the ADMIN one.
+
+**Files:**
+- Create: `api/RegisterRequest.java`
+- Modify: `api/AuthController.java`, `security/SecurityConfig.java`
+- Create: `backend/src/test/java/com/kasi/musiclibrary/security/RegistrationTest.java`
+- Create: `frontend/src/app/auth/register/register.ts|html|css`
+- Modify: `frontend/src/app/auth/auth.service.ts`, `auth/login/login.ts|html|css`, `app.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+`RegistrationTest`, without `@WithMockUser` -- registration has to work with no session:
+
+- `anyoneCanRegisterAndTheAccountIsACustomer` — 201, `role: "CUSTOMER"`
+- `anAttemptToSupplyARoleIsIgnoredNotHonoured` — posting `"role":"ADMIN"` alongside valid fields
+  still creates a CUSTOMER, because the request record has no such field to bind it to
+- `theNewAccountCanSignInImmediately` — register, then `GET /api/auth/me` with those exact
+  credentials succeeds
+- `aDuplicateUsernameIsRejected`, case-insensitively, matching the sign-in check
+- `registeringTheSeededAdminUsernameIsRejected` — not special-cased, just already taken
+- `aBlankUsernameIsRejected`, `aShortPasswordIsRejected`, `aUsernameWithDisallowedCharactersIsRejected` — 400
+
+- [ ] **Step 2: The request shape is the actual guard**
+
+```java
+public record RegisterRequest(
+        @NotBlank @Size(min = 3, max = 64) @Pattern(regexp = "^[A-Za-z0-9_.-]+$") String username,
+        @NotBlank @Size(min = 6, max = 200) String password) {
+}
+```
+
+There is no `role` field. This is the real reason a caller cannot mint an admin through this
+endpoint — not a check in the controller that a later edit could accidentally remove, but the
+absence of anywhere to put the value. Jackson ignores unknown JSON properties by default, so a
+client that sends `"role":"ADMIN"` anyway is silently no different from one that does not.
+
+- [ ] **Step 3: The endpoint**
+
+```java
+@PostMapping("/register")
+public ResponseEntity<CurrentUser> register(@Valid @RequestBody RegisterRequest request) {
+    try {
+        AppUser created = users.save(new AppUser(request.username(),
+                passwordEncoder.encode(request.password()), Role.CUSTOMER));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new CurrentUser(created.getUsername(), created.getRole().name()));
+    } catch (DataIntegrityViolationException e) {
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "That username is already taken");
+    }
+}
+```
+
+`Role.CUSTOMER` is a literal, not a parameter -- there is no path through this method that
+produces anything else. The unique index on `lower(username)` from V3 is the actual duplicate
+guard; the catch only turns its violation into a 409 a client can act on instead of a 500.
+
+- [ ] **Step 4: Permit it, and only the POST**
+
+```java
+.requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
+```
+
+Placed with the other `permitAll()` rules, before `anyRequest().authenticated()`. It still goes
+through CSRF like any other POST -- see D16 for why the cookie already exists by the time a
+visitor reaches this form (the SPA's own startup call to `/api/auth/me` sets it, 401 or not).
+
+- [ ] **Step 5: The frontend**
+
+`AuthService.register(username, password)` posts the request; it does not itself establish a
+session. `Register` (the component) chains straight into `AuthService.login(username, password)`
+on success, reusing the one code path that already turns credentials into a session correctly,
+rather than duplicating that logic. `Login` gains a `createAccount` output; `App` adds a
+`'register'` view state between `'login'` and `'welcome'`.
+
+- [ ] **Step 6: Verify**
+
+Tests pass. In the browser: register a new account, land signed in as that user, confirm no
+upload/edit/delete controls are visible (Task 9's gating), sign out, sign back in with the same
+credentials.
+
 ## Phase exit criteria
 
 - [ ] `docker compose down -v && docker compose up --build` on a clean clone reaches a login screen.
@@ -763,3 +848,4 @@ having written them.
       turns the authorization tests red.
 - [ ] `docs/api/openapi.json` and `.yaml` are regenerated and committed.
 - [ ] No document in the repository still claims the app has no authentication.
+- [ ] Self-registration produces a CUSTOMER and nothing else, including when a request tries to say otherwise.

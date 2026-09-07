@@ -29,6 +29,17 @@ export class AuthService {
       .pipe(tap((user) => this.user.set(user)));
   }
 
+  /**
+   * Create a customer account. There is no way to ask for anything else here -- the request
+   * shape has no role field -- so this can never mint an admin.
+   *
+   * Registering does not itself establish a session; the caller signs in right after with the
+   * same credentials, reusing the one code path (login) that already does that correctly.
+   */
+  register(username: string, password: string): Observable<CurrentUser> {
+    return this.http.post<CurrentUser>('/api/auth/register', { username, password });
+  }
+
   /** Ask whether an existing session is still valid. Run once, at startup. */
   refresh(): Observable<CurrentUser> {
     return this.http.get<CurrentUser>('/api/auth/me').pipe(tap((user) => this.user.set(user)));

@@ -61,6 +61,12 @@ regression test for this: `TrackControllerTest.listIncludesTracksThatHaveNoAlbum
 **Response shapes are explicit records**, never serialized JPA entities and never Spring's `Page`.
 The wire format should be a decision, not a consequence of the persistence model.
 
+**Authorization rules live in `SecurityConfig`, not on domain services.** The matrix (who may
+reach which endpoint) is expressed once, as URL-and-method rules, so it can be read in one screen
+and diffed in one place. Do not add `@PreAuthorize` to `IngestService`, `TrackUpdateService`, or
+similar — `SeedRunner` calls them at boot with no authenticated user present, and method security
+would either refuse it or need its own bypass. See D15.
+
 **jaudiotagger is confined to `AudioTagReader`.** It is unmaintained (3.0.1, 2021). Keeping it
 behind one class means replacing it touches one file. Do not import it anywhere else.
 
@@ -80,6 +86,13 @@ features and the point of these tests is that the migrations actually work.
 directly, so a broken datasource block in the config file will not fail any test. The suite passed
 for a while against an application that could not start. If you change `application.yaml`, boot the
 app for real before believing it.
+
+**MockMvc skips the Spring Security filter chain unless told not to.**
+`MockMvcBuilders.webAppContextSetup(context).build()` alone builds a chain with no security
+filters, so an unauthenticated request succeeds and every authorization test passes for the wrong
+reason. Extend `support.SecuredMockMvcTest`, which applies `springSecurity()` — every HTTP test in
+this codebase does. To confirm this is still wired, comment out that configurer and check that
+`AuthenticationTest` goes red; if it stays green, security is not actually being exercised.
 
 **Do not append to structured files with `cat >>`.** Appending a block to `application.yaml` put it
 under the wrong parent key, and appending to `angular.json` produced invalid JSON. Both looked fine

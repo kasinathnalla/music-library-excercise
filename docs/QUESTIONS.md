@@ -28,6 +28,11 @@ why the system looks the way it does.
 
 Everything still marked `[BLOCKING]` below is answered by the default stated with it.
 
+**Update, 2026-09-07:** Q9's default (single user, no auth) was overridden. Two roles were
+requested — an admin who curates the library and a customer who only browses and listens — over
+HTTP Basic. Built in `docs/plans/06-users-and-auth.md`. Q9 is left as written below because it is
+still the record of why single-user was the reasonable default at the time.
+
 ## The short version
 
 | # | Question | Default if unanswered |

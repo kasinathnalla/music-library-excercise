@@ -1,19 +1,26 @@
 package com.kasi.musiclibrary.api;
 
+import com.kasi.musiclibrary.security.AppUser;
+import com.kasi.musiclibrary.security.AppUserRepository;
 import com.kasi.musiclibrary.security.CurrentUser;
+import com.kasi.musiclibrary.security.Role;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,6 +29,14 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "Signing in, and knowing who you are")
 public class AuthController {
+
+    private final AppUserRepository users;
+    private final PasswordEncoder passwordEncoder;
+
+    public AuthController(AppUserRepository users, PasswordEncoder passwordEncoder) {
+        this.users = users;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Operation(
             summary = "Who am I",
@@ -50,6 +65,36 @@ public class AuthController {
                 .findFirst()
                 .orElse("CUSTOMER");
         return new CurrentUser(authentication.getName(), role);
+    }
+
+    @Operation(
+            summary = "Create a customer account",
+            description = """
+                    Self-registration, open to anyone. Every account created this way is a
+                    CUSTOMER: there is no field on this request that a caller could set to make
+                    an admin, by design, not by a check that could be forgotten. Provisioning an
+                    admin account is done directly against the database, the same way the
+                    seeded accounts are.
+
+                    The username is unique, case-insensitively, matching the sign-in check.
+                    """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Account created"),
+            @ApiResponse(responseCode = "400", description = "A username or password did not meet the rules"),
+            @ApiResponse(responseCode = "409", description = "That username is already taken")
+    })
+    @PostMapping("/register")
+    public ResponseEntity<CurrentUser> register(@Valid @RequestBody RegisterRequest request) {
+        try {
+            AppUser created = users.save(
+                    new AppUser(request.username(), passwordEncoder.encode(request.password()), Role.CUSTOMER));
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(new CurrentUser(created.getUsername(), created.getRole().name()));
+        } catch (DataIntegrityViolationException e) {
+            // The unique index on lower(username) is the actual guard; this only turns its
+            // violation into a response a client can act on rather than a 500.
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "That username is already taken");
+        }
     }
 
     @Operation(summary = "Sign out", description = "Invalidates the session. Always 204.")

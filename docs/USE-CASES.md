@@ -10,31 +10,39 @@ Cross-references: `Q*` are questions in [QUESTIONS.md](QUESTIONS.md), `D*` are d
 
 ## Actors
 
-There is one human actor. Naming the other two matters because they are the ones that impose
-constraints on the design.
+There are two human actors now, an admin and a customer, plus two that impose constraints on the
+design without being people at all.
 
 ```mermaid
 graph LR
-    LO["Library owner<br/>the only human actor"]
+    AD["Admin<br/>curates the library"]
+    CU["Customer<br/>browses and listens"]
     RV["Reviewer<br/>runs it from a clean clone"]
     EN["Enrichment source<br/>not built; constrains the design"]
 
-    LO --- UC1["Browse and search"]
-    LO --- UC2["Add music"]
-    LO --- UC3["Play a track"]
-    LO --- UC4["Correct metadata"]
-    LO --- UC5["Remove music"]
+    AD --- UC1["Browse and search"]
+    AD --- UC2["Add music"]
+    AD --- UC3["Play a track"]
+    AD --- UC4["Correct metadata"]
+    AD --- UC5["Remove music"]
+    CU --- UC1
+    CU --- UC3
+    AD --- UC9["Sign in"]
+    CU --- UC9
+    CU -.->|"refused, not challenged"| UC10["Attempt a write"]
     RV --- UC6["Run the whole system"]
     RV --- UC7["Read the API"]
     EN -.->|"must not overwrite<br/>hand-edited fields"| UC4
 
     style EN stroke-dasharray: 4 4
-    style LO fill:#e8f0ed,stroke:#2f5d50
+    style CU stroke-dasharray: 4 4
+    style AD fill:#e8f0ed,stroke:#2f5d50
 ```
 
 The enrichment source is dashed because it does not exist yet. It is drawn because per-field
 provenance exists *for* it, and a reader who does not know that will think the provenance table is
-pointless.
+pointless. The customer is dashed for a different reason: everything a customer can do, an admin
+can also do, so the customer is a *restriction* of the admin rather than an independent actor.
 
 ---
 
@@ -147,6 +155,42 @@ undiscoverable and read as a missing feature rather than a tidy interface.
 
 ---
 
+## UC-9 · Sign in, or create an account
+
+**Built.** `GET /api/auth/me` with HTTP Basic —
+`AuthenticationTest.theSeededAdminCanSignIn`, `theSeededCustomerCanSignIn`,
+`theWrongPasswordIsUnauthorized`, `anUnknownUserIsUnauthorizedAndIndistinguishableFromABadPassword`.
+`POST /api/auth/register` — `RegistrationTest`, 9 cases.
+
+| | |
+|---|---|
+| **Main flow** | Enter username and password → app calls `/api/auth/me` with those credentials → a session is established and everything afterward, including audio requests the browser makes on its own, authenticates through it |
+| **No account yet** | The sign-in screen's *Create an account* link registers, then immediately signs in with the same credentials |
+| **A registered account is always a customer** | Nothing in the registration form or the request it sends can ask for anything else — `anAttemptToSupplyARoleIsIgnoredNotHonoured` posts a role anyway and asserts it made no difference |
+| **A taken username** | 409, whether it collides with another registration or with a seeded account |
+| **Wrong password, or unknown user** | 401, with the same message either way — a wrong password must not reveal whether the username exists |
+| **No credentials at all** | 401 with no `WWW-Authenticate` challenge, so the browser's own credential dialog never appears; the app owns the login screen |
+| **An existing session on reload** | Same endpoint, called with no header, decides whether to show the login screen or the library |
+
+Answering the brief's request for two user types: authentication establishes *who*; UC-10 covers
+what each *may do*. An admin account is never created this way — see D17.
+
+## UC-10 · A customer is refused a write
+
+**Built.** `AuthorizationMatrixTest`, 8 cases covering upload, edit, and delete as both roles.
+
+| Path | Result | Test |
+|---|---|---|
+| **Customer attempts to upload** | 403, and nothing is added to the library | `aCustomerCannotUpload`, `aRefusedUploadDoesNotReachTheLibrary` |
+| **Customer attempts to edit metadata** | 403 | `aCustomerCannotEditMetadata` |
+| **Customer attempts to delete a track** | 403 | `aCustomerCannotDeleteATrack` |
+| **Admin performs the same actions** | Succeeds | `anAdminCanEditMetadata`, `anAdminCanDeleteATrack` |
+| **An admin's mutating request with no CSRF token** | 403 | `aMutatingRequestWithoutACsrfTokenIsRejected` |
+
+403, not 401: the customer is genuinely signed in and was refused a specific action, which is a
+different thing from not being signed in at all (UC-9). Collapsing the two would bounce a customer
+who clicked something they should not see back to a login screen they are already past.
+
 ## UC-8 · Storage integrity (non-functional)
 
 **Built.** `AudioFileStoreTest`, 8 cases. Not a user-facing use case, but it is where the system's
@@ -201,7 +245,7 @@ decision.
 | **Bulk edit across a selection** | Needs a preview step to be safe; one track at a time first | Q14 |
 | **Playlists** | Phase 3 of the roadmap | ROADMAP |
 | **Queue, shuffle, gapless** | Phase 2; basic playback was pulled into the MVP so the system is demonstrable | ROADMAP |
-| **Multiple users and sign-in** | Schema carries an owner concept so it is not a rewrite, but there is no login | Q9 |
+| ~~Multiple users and sign-in~~ | Built in Phase 6: two roles, HTTP Basic turned into a session, customer self-registration | Q9, `06-users-and-auth.md` |
 | **Automated enrichment from MusicBrainz** | The provenance it would need already exists and is enforced | Q7, Q15 |
 | **Rename an artist across the library** | Belongs on the artist, not on a track; per-track edits deliberately re-point instead | D-repoint |
 | **Pagination in the UI** | The API pages and clamps from day one; the interface fetches the first page | README |

@@ -12,6 +12,7 @@ export class Login {
   private readonly auth = inject(AuthService);
 
   readonly signedIn = output<CurrentUser>();
+  readonly createAccount = output<void>();
 
   protected readonly username = signal('');
   protected readonly password = signal('');

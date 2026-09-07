@@ -180,3 +180,83 @@ Spring's test context cache.
 Not 5432. A developer machine frequently already has something on the default port — mine did. The
 non-default host port means this project does not have to be the only Postgres running. Inside the
 compose network it is still reached as `db:5432`, so nothing about the application changes.
+
+---
+
+## 14. Accounts are rows, seeded by migration
+
+**Alternatives:** two hardcoded users in Spring Security's in-memory `UserDetailsManager`; a
+seeded table; a seeded table plus self-registration.
+
+In-memory users are less code, but a user is data, and the application already owns a database and
+a Flyway pipeline. The moment anyone wants a third account, admin-managed accounts, or a record of
+who uploaded a track, in-memory users have to be thrown away entirely. Seeding two accounts via a
+migration (`V3__users.sql`) keeps `docker compose up` demoable on a clean volume with no signup
+screen, and the accounts are ordinary rows from day one.
+
+Self-registration for customers was added afterward (decision 17) once the login screen needed
+somewhere to send someone who does not have an account. Admin accounts remain provisioned
+directly against the database — the asymmetry is deliberate, not a gap.
+
+## 15. Authorization lives in the filter chain, not on the domain services
+
+**Alternatives:** `@PreAuthorize` on `IngestService`, `TrackUpdateService`, and
+`TrackDeletionService`; a rule table read at request time; the filter chain.
+
+The rules are URL-and-method rules, so `SecurityConfig` is where the whole matrix can be read and
+diffed in one screen. Method security on the domain services would also apply to `SeedRunner`,
+which ingests the bundled tracks at boot with no authentication present — that path would either
+need its own bypass or would fail at startup. It would also push an HTTP concern into `catalog/`
+and `ingest/`, which AGENTS.md is explicit know nothing about HTTP.
+
+The trade-off, stated plainly: a new controller that forgets to add a matcher in `SecurityConfig`
+is reachable by any signed-in user, where method security would have failed closed by default.
+Mitigated two ways — `anyRequest().authenticated()` is the final rule, so nothing is ever reachable
+anonymously by omission, and `AuthorizationMatrixTest` asserts the matrix directly rather than only
+a happy path.
+
+## 16. Basic credentials establish a session; the session authenticates the audio element
+
+**Alternatives:** challenge with `WWW-Authenticate` and let the browser cache Basic credentials
+itself; fetch audio as a blob through `HttpClient` so an `Authorization` header can be attached;
+authenticate once with Basic and persist the result in a session.
+
+This one is forced by a feature the README treats as load-bearing: seeking. The browser's
+`<audio>` element issues its own `Range` requests directly against
+`/api/tracks/{id}/stream` — the browser makes that request, not Angular, so there is no way to
+attach a header to it.
+
+Letting the browser challenge and cache Basic credentials works, but pops the native browser
+credential dialog over the SPA, with no way to sign out of it from the page. Fetching audio as a
+blob would let a header be attached, but kills range requests and therefore kills seeking — the
+feature UC-3 exists to prove works.
+
+So: Basic authenticates once, and the resulting security context is written to an HTTP session
+(`HttpSessionSecurityContextRepository`, explicit because the Basic filter's own default since
+Spring Security 6 is request-scoped, not session-scoped). Everything after that — including the
+audio element's own requests — rides the session cookie. The consequence that follows directly
+from this: a cookie is an ambient credential, so CSRF protection has to be turned back on
+(`CookieCsrfTokenRepository.withHttpOnlyFalse()`, matched to Angular's default `XSRF-TOKEN` /
+`X-XSRF-TOKEN` handling).
+
+When this moves to tokens, the seam is `TrackService.streamUrl()` on the frontend and
+`StreamController` on the backend — a short-lived signed URL replaces the cookie there, and
+nothing else in this design changes.
+
+## 17. Self-registration exists for customers, not for admins
+
+**Alternatives:** no self-registration at all (decision 14's original position); self-registration
+for any role, chosen by the caller; self-registration for customers only.
+
+Leaving registration out entirely was the simplest thing, but a login screen with no path forward
+for someone who does not yet have an account is a dead end, and growing the customer population
+is a reasonable thing for the application itself to do. Growing the admin population is a
+different kind of decision — it is who gets to curate the shared library — and that stays a
+deliberate, out-of-band act, provisioned directly against the database exactly like the two
+seeded accounts.
+
+The boundary is enforced by the shape of the request, not by a check that a later change could
+weaken: `RegisterRequest` has a `username` and a `password` and nothing else. There is no field to
+set to `ADMIN`, so a client that sends one anyway is simply ignored — proven directly in
+`RegistrationTest.anAttemptToSupplyARoleIsIgnoredNotHonoured`, which posts a `role` field and
+asserts the resulting account is a customer regardless.

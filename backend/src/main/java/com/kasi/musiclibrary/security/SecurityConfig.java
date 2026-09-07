@@ -72,6 +72,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/", "/index.html", "/favicon.ico",
                                 "/*.js", "/*.css", "/assets/**", "/media/**").permitAll()
 
+                        // Self-registration is deliberately open: signing up is how an account
+                        // is meant to come into being for anyone but an admin. It still goes
+                        // through CSRF like any other POST -- see the filter chain below.
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
+
                         // Curating the library is an admin act. Editing is included because a
                         // hand edit is recorded in field_edit and thereby becomes off limits to
                         // future automated enrichment (D10) -- a library-wide consequence that

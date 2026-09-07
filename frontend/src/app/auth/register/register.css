@@ -79,35 +79,6 @@ input:focus-visible {
   border-radius: 6px;
 }
 
-.demo-accounts {
-  margin-top: 2.5rem;
-  font-size: 0.85rem;
-  color: #4a4a46;
-}
-
-.demo-accounts summary {
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.demo-accounts table {
-  margin-top: 0.75rem;
-  border-collapse: collapse;
-  width: 100%;
-}
-
-.demo-accounts th,
-.demo-accounts td {
-  text-align: left;
-  padding: 0.35rem 0.5rem 0.35rem 0;
-  border-bottom: 1px solid #e6e5e1;
-}
-
-.demo-accounts .note {
-  margin: 0.75rem 0 0;
-  color: #6b6a66;
-}
-
 .switch {
   margin-top: 1.5rem;
   font-size: 0.85rem;
