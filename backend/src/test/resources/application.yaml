@@ -1,0 +1,5 @@
+musiclibrary:
+  storage:
+    media-root: /tmp/musiclibrary-test
+  seed:
+    enabled: false

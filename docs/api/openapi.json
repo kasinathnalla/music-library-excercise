@@ -1,0 +1,535 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Music Library API",
+        "description": "Manages a music library: ingesting audio files, reading their embedded\ntags into first-class artist and album entities, searching the catalog,\nand streaming audio with range-request support.\n\nNo third-party music service is involved and no credentials are needed.\nThe application is its own API and owns its catalog.\n",
+        "license": {
+            "name": "Unlicensed exercise submission"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8080",
+            "description": "Local"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Library",
+            "description": "Summary information about the whole library"
+        },
+        {
+            "name": "Playback",
+            "description": "Serving audio bytes to a player"
+        },
+        {
+            "name": "Tracks",
+            "description": "Ingest, browse, and search the library"
+        }
+    ],
+    "paths": {
+        "/api/tracks": {
+            "get": {
+                "tags": [
+                    "Tracks"
+                ],
+                "summary": "List and search tracks",
+                "description": "Returns a page of tracks ordered by title, case-insensitively.\n\nThe query matches track title, album title, and album artist name. Tracks with\nno album are included; the joins are left joins for exactly that reason.\n\nPage size is clamped to 200 so an unbounded request cannot be used to pull the\nwhole library in one call.\n",
+                "operationId": "list",
+                "parameters": [
+                    {
+                        "name": "query",
+                        "in": "query",
+                        "description": "Free-text match on title, album, or artist. Omit for everything.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Zero-based page index",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "default": 0
+                        }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "description": "Rows per page, clamped to 200",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "default": 50
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TrackPage"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Tracks"
+                ],
+                "summary": "Add an audio file to the library",
+                "description": "Stores the bytes, reads embedded tags, and reconciles the artist and album\nagainst existing rows so a second track from the same album reuses both.\n\nTrack identity is a SHA-256 of the file content, so re-uploading the same\naudio under a different filename is a conflict rather than a second copy.\n",
+                "operationId": "upload",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "required": [
+                                    "file"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Added to the library",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TrackResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Empty, or not readable as audio",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "These exact bytes are already in the library",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "Larger than the upload limit",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tracks/{id}": {
+            "get": {
+                "tags": [
+                    "Tracks"
+                ],
+                "summary": "Fetch one track",
+                "operationId": "get",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TrackResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No track with that id",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Tracks"
+                ],
+                "summary": "Remove a track from the library",
+                "description": "Deletes the track, its stored audio, and anything left dangling: an album with\nno remaining tracks is removed, and an artist credited on no remaining albums\ngoes with it.\n\nThis is permanent. There is no undo in this version.\n",
+                "operationId": "delete",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted"
+                    },
+                    "404": {
+                        "description": "No track with that id",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "tags": [
+                    "Tracks"
+                ],
+                "summary": "Edit a track's metadata",
+                "description": "A partial update: fields left out are unchanged.\n\nEditing albumTitle or artistName moves this track to that album or artist,\nmatching an existing row before creating one. It does not rename the album or\nartist across the library, because \"this track is on a different album\" and\n\"this album is misnamed\" are different intentions. An empty string detaches\nthe association entirely.\n\nAn album left with no tracks is removed, as is an artist left with no albums.\n\nEvery edited field is recorded, and automated enrichment is required to leave\nrecorded fields alone. Edits change the library only; the tags inside your\naudio files are not rewritten.\n",
+                "operationId": "update",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TrackUpdateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TrackResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "A supplied value is not valid",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No track with that id",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tracks/{id}/stream": {
+            "get": {
+                "tags": [
+                    "Playback"
+                ],
+                "summary": "Stream a track's audio",
+                "description": "Serves the audio with Accept-Ranges set, so a browser can seek rather than\nonly playing from the start. A Range header yields 206 Partial Content with a\nContent-Range covering the requested window.\n",
+                "operationId": "stream",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The whole file",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "206": {
+                        "description": "The requested byte range",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No such track, or its audio is missing from storage",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/stats": {
+            "get": {
+                "tags": [
+                    "Library"
+                ],
+                "summary": "Headline counts for the library",
+                "description": "Backs the welcome screen so it reports real numbers rather than placeholders.",
+                "operationId": "stats",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LibraryStats"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "ErrorResponse": {
+                "type": "object",
+                "description": "Error body returned for handled failures",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "description": "Human-readable explanation",
+                        "example": "This audio is already in the library"
+                    },
+                    "existingTrackId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Set only on a duplicate upload: the track that already holds these bytes"
+                    }
+                }
+            },
+            "TrackResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "albumTitle": {
+                        "type": "string"
+                    },
+                    "artistName": {
+                        "type": "string"
+                    },
+                    "trackNumber": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "discNumber": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "durationMs": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "releaseYear": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "userEditedFields": {
+                        "type": "array",
+                        "description": "Fields on this track that a person set by hand. Automated enrichment must leave\nthese alone. Absent when nothing has been edited.\n",
+                        "example": [
+                            "title",
+                            "artistName"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "TrackUpdateRequest": {
+                "type": "object",
+                "description": "A partial update. Any field left out is unchanged.\n\nFor albumTitle and artistName an empty string means \"remove this association\" rather\nthan \"set it to blank\", which is how a track ends up with no album.\n",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "New track title. Must not be blank.",
+                        "example": "Prelude in C"
+                    },
+                    "albumTitle": {
+                        "type": "string",
+                        "description": "Moves the track to this album, matching an existing album by title and credited\nartist before creating one. Empty string removes the album.\n"
+                    },
+                    "artistName": {
+                        "type": "string",
+                        "description": "Moves the track's album under this artist, matching an existing artist by name\nbefore creating one. Empty string removes the artist.\n"
+                    },
+                    "trackNumber": {
+                        "type": "integer",
+                        "format": "int32",
+                        "description": "Position within the disc",
+                        "example": 3,
+                        "maximum": 999,
+                        "minimum": 0
+                    },
+                    "discNumber": {
+                        "type": "integer",
+                        "format": "int32",
+                        "description": "Disc number for multi-disc releases",
+                        "example": 1,
+                        "maximum": 99,
+                        "minimum": 0
+                    },
+                    "releaseYear": {
+                        "type": "integer",
+                        "format": "int32",
+                        "description": "Release year of the album",
+                        "example": 1998,
+                        "maximum": 9999,
+                        "minimum": 0
+                    }
+                }
+            },
+            "TrackPage": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TrackResponse"
+                        }
+                    },
+                    "page": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "size": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "totalElements": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "totalPages": {
+                        "type": "integer",
+                        "format": "int32"
+                    }
+                }
+            },
+            "LibraryStats": {
+                "type": "object",
+                "description": "Headline counts for the library",
+                "properties": {
+                    "trackCount": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Total tracks",
+                        "example": 6
+                    },
+                    "albumCount": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Distinct albums",
+                        "example": 2
+                    },
+                    "artistCount": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Distinct artists",
+                        "example": 2
+                    },
+                    "totalDurationMs": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Combined duration of every track, in milliseconds"
+                    }
+                }
+            }
+        }
+    }
+}

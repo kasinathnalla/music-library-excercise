@@ -1,0 +1,122 @@
+<div class="backdrop" (click)="cancelled.emit()"></div>
+
+<div
+  class="dialog"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="edit-heading"
+  (keydown)="onKeydown($event)"
+>
+  <h2 id="edit-heading">Edit track</h2>
+  <p class="note">
+    Changes apply to this library only. The tags inside your audio file are not rewritten.
+  </p>
+
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  <form (ngSubmit)="save()">
+    <label class="field">
+      <span class="label-row">
+        Title
+        @if (wasEdited('title')) { <span class="edited-flag">edited</span> }
+      </span>
+      <input
+        type="text"
+        name="title"
+        [ngModel]="title()"
+        (ngModelChange)="title.set($event)"
+        [class.invalid]="titleInvalid()"
+        autocomplete="off"
+      />
+      @if (titleInvalid()) {
+        <span class="field-error">A title is required.</span>
+      }
+    </label>
+
+    <label class="field">
+      <span class="label-row">
+        Artist
+        @if (wasEdited('artistName')) { <span class="edited-flag">edited</span> }
+      </span>
+      <input
+        type="text"
+        name="artistName"
+        [ngModel]="artistName()"
+        (ngModelChange)="artistName.set($event)"
+        autocomplete="off"
+      />
+      <span class="hint">Moves this track under that artist. Leave empty for none.</span>
+    </label>
+
+    <label class="field">
+      <span class="label-row">
+        Album
+        @if (wasEdited('albumTitle')) { <span class="edited-flag">edited</span> }
+      </span>
+      <input
+        type="text"
+        name="albumTitle"
+        [ngModel]="albumTitle()"
+        (ngModelChange)="albumTitle.set($event)"
+        autocomplete="off"
+      />
+      <span class="hint">Moves this track to that album. Leave empty for none.</span>
+    </label>
+
+    <div class="row">
+      <label class="field narrow">
+        <span class="label-row">
+          Track
+          @if (wasEdited('trackNumber')) { <span class="edited-flag">edited</span> }
+        </span>
+        <input
+          type="number"
+          name="trackNumber"
+          min="0"
+          max="999"
+          [ngModel]="trackNumber()"
+          (ngModelChange)="trackNumber.set($event)"
+        />
+      </label>
+
+      <label class="field narrow">
+        <span class="label-row">
+          Disc
+          @if (wasEdited('discNumber')) { <span class="edited-flag">edited</span> }
+        </span>
+        <input
+          type="number"
+          name="discNumber"
+          min="0"
+          max="99"
+          [ngModel]="discNumber()"
+          (ngModelChange)="discNumber.set($event)"
+        />
+      </label>
+
+      <label class="field narrow">
+        <span class="label-row">
+          Year
+          @if (wasEdited('releaseYear')) { <span class="edited-flag">edited</span> }
+        </span>
+        <input
+          type="number"
+          name="releaseYear"
+          min="0"
+          max="9999"
+          [ngModel]="releaseYear()"
+          (ngModelChange)="releaseYear.set($event)"
+        />
+      </label>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="secondary" (click)="cancelled.emit()">Cancel</button>
+      <button type="submit" class="primary" [disabled]="saving() || titleInvalid()">
+        {{ saving() ? 'Saving…' : 'Save changes' }}
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,139 @@
+<header class="library-header">
+  <div class="title-group">
+    <h1>Library</h1>
+    <button type="button" class="back" (click)="back.emit()">← Overview</button>
+  </div>
+  <div class="controls">
+    <label class="visually-hidden" for="search">Search the library</label>
+    <input
+      id="search"
+      type="search"
+      placeholder="Search title, album, or artist"
+      [value]="query()"
+      (input)="onSearch($event)"
+    />
+    <label class="upload">
+      Add music
+      <input type="file" accept="audio/*" (change)="onUpload($event)" />
+    </label>
+  </div>
+</header>
+
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+
+@if (loading()) {
+  <p class="status" role="status">Loading…</p>
+} @else if (tracks().length === 0) {
+  <p class="empty" data-testid="empty-state">
+    @if (query()) {
+      Nothing matches “{{ query() }}”.
+    } @else {
+      Nothing here yet. Use <strong>Add music</strong> to bring in an audio file.
+    }
+  </p>
+} @else {
+  <p class="status">
+    {{ total() }} {{ total() === 1 ? 'track' : 'tracks' }}@if (query()) { matching “{{ query() }}”}
+  </p>
+  <table class="tracks">
+    <thead>
+      <tr>
+        <th scope="col" class="col-play"><span class="visually-hidden">Play</span></th>
+        <th scope="col" class="col-hide">#</th>
+        <th scope="col">Title</th>
+        <th scope="col">Artist</th>
+        <th scope="col" class="col-hide">Album</th>
+        <th scope="col">Length</th>
+        <th scope="col" class="col-actions"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (track of tracks(); track track.id) {
+        <tr data-testid="track-row" [class.playing]="track.id === nowPlayingId()">
+          <td>
+            <button
+              type="button"
+              class="play-button"
+              (click)="play(track)"
+              [attr.aria-label]="'Play ' + track.title"
+            >
+              ▶
+            </button>
+          </td>
+          <td class="col-hide num">{{ track.trackNumber ?? '' }}</td>
+          <td class="track-title">{{ track.title }}</td>
+          <td>
+            @if (track.artistName) {
+              {{ track.artistName }}
+            } @else {
+              <span class="muted">Unknown artist</span>
+            }
+          </td>
+          <td class="col-hide">
+            @if (track.albumTitle) {
+              {{ track.albumTitle }}
+            } @else {
+              <span class="muted">—</span>
+            }
+          </td>
+          <td class="num">{{ formatDuration(track.durationMs) }}</td>
+          <td class="col-actions">
+            @if (pendingDeleteId() === track.id) {
+              <span class="confirm" role="group" [attr.aria-label]="'Confirm removing ' + track.title">
+                <span class="confirm-label">Remove?</span>
+                <button
+                  type="button"
+                  class="confirm-yes"
+                  [disabled]="deletingId() === track.id"
+                  (click)="confirmDelete(track)"
+                >
+                  {{ deletingId() === track.id ? 'Removing…' : 'Yes' }}
+                </button>
+                <button type="button" class="confirm-no" (click)="cancelDelete()">No</button>
+              </span>
+            } @else {
+              <span class="row-actions">
+                <button
+                  type="button"
+                  class="row-action"
+                  (click)="edit(track)"
+                  [attr.aria-label]="'Edit ' + track.title"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  class="row-action danger"
+                  (click)="askDelete(track)"
+                  [attr.aria-label]="'Remove ' + track.title + ' from the library'"
+                >
+                  Delete
+                </button>
+              </span>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}
+
+@if (nowPlayingUrl(); as url) {
+  <footer class="player">
+    <div class="now-playing">
+      <div class="label">Now playing</div>
+      <div class="name">{{ nowPlayingTitle() }}</div>
+    </div>
+    <audio [src]="url" controls autoplay></audio>
+  </footer>
+}
+
+@if (editing(); as track) {
+  <app-track-edit
+    [track]="track"
+    (saved)="onEditSaved($event)"
+    (cancelled)="onEditCancelled()"
+  />
+}

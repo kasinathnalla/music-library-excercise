@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: music-library
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/musiclibrary}
+    username: ${DATABASE_USER:musiclibrary}
+    password: ${DATABASE_PASSWORD:musiclibrary}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+musiclibrary:
+  storage:
+    media-root: ${MEDIA_ROOT:./media}
+  seed:
+    enabled: ${SEED_ENABLED:true}

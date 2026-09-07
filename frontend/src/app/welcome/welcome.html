@@ -1,0 +1,88 @@
+<section class="hero">
+  <p class="eyebrow">Music Library</p>
+  <h1>Your library, on your own terms.</h1>
+  <p class="lede">
+    A self-contained music library. It reads the tags off your own files, organises them into
+    real artists and albums, and plays them back. No account, no streaming service, no
+    credentials to go and register.
+  </p>
+
+  @if (stats(); as s) {
+    <dl class="stats" aria-label="Library summary">
+      <div class="stat">
+        <dt>Tracks</dt>
+        <dd>{{ s.trackCount }}</dd>
+      </div>
+      <div class="stat">
+        <dt>Albums</dt>
+        <dd>{{ s.albumCount }}</dd>
+      </div>
+      <div class="stat">
+        <dt>Artists</dt>
+        <dd>{{ s.artistCount }}</dd>
+      </div>
+      <div class="stat">
+        <dt>Runtime</dt>
+        <dd>{{ formatTotalDuration(s.totalDurationMs) }}</dd>
+      </div>
+    </dl>
+  }
+
+  <button type="button" class="cta" (click)="enter.emit()">
+    Open the library
+  </button>
+</section>
+
+<section class="features" aria-label="What this does">
+  <article class="feature">
+    <h2>Reads your tags</h2>
+    <p>
+      Embedded metadata is parsed on upload and reconciled against what is already there, so a
+      second track from an album you own joins that album instead of creating a duplicate.
+    </p>
+  </article>
+
+  <article class="feature">
+    <h2>Real artists and albums</h2>
+    <p>
+      Artists and albums are first-class records, not strings copied onto every track. Renaming an
+      artist is one change, and an album can be credited properly.
+    </p>
+  </article>
+
+  <article class="feature">
+    <h2>Search that spans the catalog</h2>
+    <p>
+      One box matches track titles, album titles, and artist names at once. Tracks with no album
+      are still findable rather than quietly dropped.
+    </p>
+  </article>
+
+  <article class="feature">
+    <h2>Plays, and seeks</h2>
+    <p>
+      Audio is streamed with range-request support, so the scrubber works properly instead of only
+      playing from the beginning.
+    </p>
+  </article>
+
+  <article class="feature">
+    <h2>No duplicates</h2>
+    <p>
+      A track is identified by a hash of its contents. Upload the same audio under a different
+      filename and it is recognised, not copied.
+    </p>
+  </article>
+
+  <article class="feature">
+    <h2>Runs anywhere</h2>
+    <p>
+      One command brings up the database and the application together. Nothing to sign up for and
+      no API keys to obtain first.
+    </p>
+  </article>
+</section>
+
+<footer class="hero-footer">
+  <a href="/swagger-ui/index.html" target="_blank" rel="noopener">API documentation</a>
+</footer>

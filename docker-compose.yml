@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: musiclibrary
+      POSTGRES_USER: musiclibrary
+      POSTGRES_PASSWORD: musiclibrary
+    ports:
+      # Published on a non-default host port so this project does not collide with
+      # another Postgres already bound to 5432. Inside the compose network the app
+      # still reaches it as db:5432.
+      - "55432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U musiclibrary -d musiclibrary"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build:
+      context: .
+    environment:
+      DATABASE_URL: jdbc:postgresql://db:5432/musiclibrary
+      DATABASE_USER: musiclibrary
+      DATABASE_PASSWORD: musiclibrary
+      MEDIA_ROOT: /var/lib/musiclibrary/media
+    ports:
+      - "8080:8080"
+    volumes:
+      - media-data:/var/lib/musiclibrary/media
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  media-data:
