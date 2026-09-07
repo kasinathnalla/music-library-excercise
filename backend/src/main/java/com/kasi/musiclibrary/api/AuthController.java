@@ -1,6 +1,7 @@
 package com.kasi.musiclibrary.api;
 
 import com.kasi.musiclibrary.security.AppUser;
+import com.kasi.musiclibrary.security.AppUserPrincipal;
 import com.kasi.musiclibrary.security.AppUserRepository;
 import com.kasi.musiclibrary.security.CurrentUser;
 import com.kasi.musiclibrary.security.Role;
@@ -64,7 +65,14 @@ public class AuthController {
                 .map(a -> a.substring("ROLE_".length()))
                 .findFirst()
                 .orElse("CUSTOMER");
-        return new CurrentUser(authentication.getName(), role);
+
+        // The seeded accounts, and any principal built by @WithMockUser in tests, carry no
+        // name. Falling back to the bare username is a real case, not defensive noise.
+        if (authentication.getPrincipal() instanceof AppUserPrincipal principal) {
+            return new CurrentUser(authentication.getName(), role,
+                    principal.firstName(), principal.lastName());
+        }
+        return CurrentUser.withoutName(authentication.getName(), role);
     }
 
     @Operation(
@@ -84,16 +92,21 @@ public class AuthController {
             @ApiResponse(responseCode = "409", description = "That username is already taken")
     })
     @PostMapping("/register")
-    public ResponseEntity<CurrentUser> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         try {
-            AppUser created = users.save(
-                    new AppUser(request.username(), passwordEncoder.encode(request.password()), Role.CUSTOMER));
+            AppUser created = users.save(new AppUser(request.username(),
+                    passwordEncoder.encode(request.password()), Role.CUSTOMER,
+                    request.firstName(), request.lastName(), request.dateOfBirth(),
+                    request.address()));
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new CurrentUser(created.getUsername(), created.getRole().name()));
+                    .body(new CurrentUser(created.getUsername(), created.getRole().name(),
+                            created.getFirstName(), created.getLastName()));
         } catch (DataIntegrityViolationException e) {
             // The unique index on lower(username) is the actual guard; this only turns its
-            // violation into a response a client can act on rather than a 500.
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "That username is already taken");
+            // violation into a message a client can show, in the same ErrorResponse shape
+            // every other handled conflict in this API uses (see DuplicateTrackException).
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorResponse("That username is already taken"));
         }
     }
 

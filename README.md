@@ -30,8 +30,10 @@ Seeded by a database migration on first boot, alongside the six starter tracks, 
 something to sign in to and something to listen to immediately. These are demo credentials for a
 local exercise, not production ones — see [Deliberate limitations](#deliberate-limitations).
 
-No account yet? The sign-in screen has a **Create an account** link. Self-registration always
-creates a listener account — there is no way to request an admin account through it.
+No account yet? The sign-in screen has a **Create an account** link. It asks for a first and
+last name, date of birth, address, username, and password, and always creates a listener
+account — there is no way to request an admin account through it. The name is what shows next to
+Sign out; the two seeded accounts above predate that field and show their username instead.
 
 First build takes a few minutes (it downloads Node, a JDK, and the Gradle dependencies). Later
 builds are cached and take seconds.

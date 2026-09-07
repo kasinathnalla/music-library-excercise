@@ -15,11 +15,12 @@ import java.util.UUID;
  * every upload. The password hash is deliberately not retained beyond authentication.
  */
 public record AppUserPrincipal(UUID id, String username, String passwordHash, Role role,
-                               boolean enabled) implements UserDetails {
+                               boolean enabled, String firstName, String lastName)
+        implements UserDetails {
 
     public static AppUserPrincipal of(AppUser user) {
         return new AppUserPrincipal(user.getId(), user.getUsername(), user.getPasswordHash(),
-                user.getRole(), user.isEnabled());
+                user.getRole(), user.isEnabled(), user.getFirstName(), user.getLastName());
     }
 
     @Override

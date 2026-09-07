@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -34,14 +35,33 @@ public class AppUser {
     @Column(nullable = false, insertable = false, updatable = false)
     private Instant createdAt;
 
+    // Profile fields. Nullable: the two seeded accounts (V3) predate them, and the app falls
+    // back to the bare username when a name is absent rather than treating that as an error.
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    private String address;
+
     protected AppUser() {
     }
 
-    public AppUser(String username, String passwordHash, Role role) {
+    /** Used by self-registration, which always collects a full profile. */
+    public AppUser(String username, String passwordHash, Role role, String firstName,
+                  String lastName, LocalDate dateOfBirth, String address) {
         this.username = username;
         this.passwordHash = passwordHash;
         this.role = role;
         this.enabled = true;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.dateOfBirth = dateOfBirth;
+        this.address = address;
     }
 
     public UUID getId() {
@@ -66,5 +86,21 @@ public class AppUser {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public String getAddress() {
+        return address;
     }
 }

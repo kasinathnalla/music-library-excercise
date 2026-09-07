@@ -260,3 +260,24 @@ weaken: `RegisterRequest` has a `username` and a `password` and nothing else. Th
 set to `ADMIN`, so a client that sends one anyway is simply ignored — proven directly in
 `RegistrationTest.anAttemptToSupplyARoleIsIgnoredNotHonoured`, which posts a `role` field and
 asserts the resulting account is a customer regardless.
+
+## 18. Registration collects a profile; validation failures return a shape a form can use
+
+**Alternatives:** collect only a username and password at registration; return validation
+failures in Spring's default `ProblemDetail` body.
+
+The account bar needed something better than a raw username to show, so registration collects a
+first name, last name, date of birth, and address. All four live on `app_user` as nullable
+columns (V5) — nullable because the two seeded accounts predate them, and the app falls back to
+the username in the account bar when a name is absent rather than treating that as an error.
+
+Validation failures on any `@Valid` request body — registration is the first one that mattered
+in practice — were falling through to Spring Boot's default problem-detail response, a shape
+distinct from the `ErrorResponse` the rest of this API uses. A single `MethodArgumentNotValidException`
+handler in `ApiExceptionHandler` now returns every failing field at once (not just the first one
+Spring collected), as `{message, fieldErrors}`, so a registration form can show a person all of
+what's wrong in one pass instead of one rejection at a time.
+
+Two things this is not: an address model (it is one free-text field, not street/city/state/zip),
+and an age check (date of birth is validated only as being in the past, not compared against a
+minimum age). Both are easy to add later without a migration, since the column already exists.

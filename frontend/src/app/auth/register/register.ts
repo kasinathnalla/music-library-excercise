@@ -20,11 +20,31 @@ export class Register {
   readonly registered = output<CurrentUser>();
   readonly backToSignIn = output<void>();
 
+  protected readonly firstName = signal('');
+  protected readonly lastName = signal('');
+  protected readonly dateOfBirth = signal('');
+  protected readonly address = signal('');
   protected readonly username = signal('');
   protected readonly password = signal('');
   protected readonly confirm = signal('');
   protected readonly submitting = signal(false);
   protected readonly error = signal<string | null>(null);
+
+  protected onFirstName(event: Event): void {
+    this.firstName.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onLastName(event: Event): void {
+    this.lastName.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onDateOfBirth(event: Event): void {
+    this.dateOfBirth.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onAddress(event: Event): void {
+    this.address.set((event.target as HTMLInputElement).value);
+  }
 
   protected onUsername(event: Event): void {
     this.username.set((event.target as HTMLInputElement).value);
@@ -55,7 +75,14 @@ export class Register {
 
     this.submitting.set(true);
     this.auth
-      .register(username, password)
+      .register({
+        username,
+        password,
+        firstName: this.firstName().trim(),
+        lastName: this.lastName().trim(),
+        dateOfBirth: this.dateOfBirth(),
+        address: this.address().trim(),
+      })
       // Registering does not sign you in on its own; immediately do what the login screen
       // does, with the password still in hand from the form.
       .pipe(switchMap(() => this.auth.login(username, password)))
@@ -81,7 +108,7 @@ export class Register {
       return 'That username is already taken.';
     }
     if (e?.status === 400) {
-      return e.error?.message ?? 'Check the username and password requirements below.';
+      return e.error?.message ?? 'Check that every field is filled in and the date of birth is in the past.';
     }
     return 'Could not create an account. Is the server running?';
   }

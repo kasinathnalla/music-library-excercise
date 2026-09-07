@@ -1,7 +1,7 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
-import { CurrentUser } from './auth.model';
+import { CurrentUser, RegisterDetails } from './auth.model';
 
 /**
  * Signing in, and remembering who is signed in.
@@ -36,8 +36,8 @@ export class AuthService {
    * Registering does not itself establish a session; the caller signs in right after with the
    * same credentials, reusing the one code path (login) that already does that correctly.
    */
-  register(username: string, password: string): Observable<CurrentUser> {
-    return this.http.post<CurrentUser>('/api/auth/register', { username, password });
+  register(details: RegisterDetails): Observable<CurrentUser> {
+    return this.http.post<CurrentUser>('/api/auth/register', details);
   }
 
   /** Ask whether an existing session is still valid. Run once, at startup. */

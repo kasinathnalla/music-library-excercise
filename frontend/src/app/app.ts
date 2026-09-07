@@ -20,7 +20,7 @@ import { LibraryStats } from './catalog/stats.model';
       @if (auth.user(); as user) {
         <div class="account-bar">
           <span class="who">
-            {{ user.username }}
+            {{ displayName(user) }}
             <span class="role" [class.admin]="user.role === 'ADMIN'">
               {{ user.role === 'ADMIN' ? 'Admin' : 'Listener' }}
             </span>
@@ -70,6 +70,11 @@ export class App {
   private toLogin(): void {
     this.stats.set(null);
     this.view.set('login');
+  }
+
+  /** First and last name when the account has them; the two seeded accounts do not. */
+  protected displayName(user: { username: string; firstName?: string | null; lastName?: string | null }): string {
+    return user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username;
   }
 
   protected open(): void {

@@ -7,6 +7,58 @@
   </p>
 
   <form (submit)="submit($event)" novalidate>
+    <div class="row">
+      <div class="field">
+        <label for="reg-first-name">First name</label>
+        <input
+          id="reg-first-name"
+          name="firstName"
+          type="text"
+          autocomplete="given-name"
+          maxlength="100"
+          required
+          [value]="firstName()"
+          (input)="onFirstName($event)"
+        />
+      </div>
+      <div class="field">
+        <label for="reg-last-name">Last name</label>
+        <input
+          id="reg-last-name"
+          name="lastName"
+          type="text"
+          autocomplete="family-name"
+          maxlength="100"
+          required
+          [value]="lastName()"
+          (input)="onLastName($event)"
+        />
+      </div>
+    </div>
+
+    <label for="reg-dob">Date of birth</label>
+    <input
+      id="reg-dob"
+      name="dateOfBirth"
+      type="date"
+      autocomplete="bday"
+      required
+      [value]="dateOfBirth()"
+      (input)="onDateOfBirth($event)"
+    />
+
+    <label for="reg-address">Address</label>
+    <input
+      id="reg-address"
+      name="address"
+      type="text"
+      autocomplete="street-address"
+      maxlength="500"
+      required
+      [value]="address()"
+      (input)="onAddress($event)"
+    />
+
     <label for="reg-username">Username</label>
     <input
       id="reg-username"
@@ -16,7 +68,7 @@
       autocapitalize="none"
       spellcheck="false"
       minlength="3"
-      maxlength="64"
+      maxlength="254"
       required
       [value]="username()"
       (input)="onUsername($event)"
@@ -53,7 +105,16 @@
     <button
       type="submit"
       class="cta"
-      [disabled]="submitting() || !username() || !password() || !confirm()"
+      [disabled]="
+        submitting() ||
+        !firstName() ||
+        !lastName() ||
+        !dateOfBirth() ||
+        !address() ||
+        !username() ||
+        !password() ||
+        !confirm()
+      "
     >
       {{ submitting() ? 'Creating account…' : 'Create account' }}
     </button>
