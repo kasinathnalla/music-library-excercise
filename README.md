@@ -117,6 +117,8 @@ it. This is permanent; there is no undo in this version.
 |---|---|
 | `README.md` | This file: what it is and how to run it |
 | `AGENTS.md` | Operating context for AI agents working in this repo, plus how it was actually built |
+| `docs/ARCHITECTURE.md` | Diagrams: deployment, components, data model, and the key interaction and state flows |
+| `docs/USE-CASES.md` | What the system does from a user's point of view, with the test behind each case |
 | `docs/QUESTIONS.md` | The clarifying questions I would have asked, each with the default I proceeded on |
 | `docs/plans/ROADMAP.md` | The five-phase plan, why it is ordered that way, and what gets cut first |
 | `docs/plans/01-foundation-and-library.md` | The full Phase 1 implementation plan, task by task |
@@ -124,8 +126,9 @@ it. This is permanent; there is no undo in this version.
 | `docs/DECISIONS.md` | The design decisions that had real alternatives, and why each went the way it did |
 | `backend/src/main/resources/seed-audio/CREDITS.md` | Where the bundled audio came from |
 
-Start with `docs/QUESTIONS.md` if you want to know what I thought was ambiguous about the brief, and
-`docs/DECISIONS.md` if you want to know why the code looks the way it does.
+Start with `docs/ARCHITECTURE.md` for how it fits together, `docs/USE-CASES.md` for what it does,
+`docs/QUESTIONS.md` for what I thought was ambiguous about the brief, and `docs/DECISIONS.md` for why
+the code looks the way it does.
 
 ---
 
