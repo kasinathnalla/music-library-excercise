@@ -16,7 +16,8 @@ it runs out at the end, and what exists is coherent rather than half-wired.
 | 3 | 03-playlists.md | Create, reorder, and play playlists | ~0.25 day |
 | 4 | 04-metadata-editing.md | Per-track and bulk editing with per-field provenance and undo | ~0.5 day |
 | 5 | 05-docs-and-polish.md | README, AGENTS.md, ADRs, large-library seed, accessibility pass | ~0.25 day |
-| **6 (next)** | [06-users-and-auth.md](06-users-and-auth.md) | Two roles over HTTP Basic: admins upload and edit, customers browse and listen, nobody browses anonymously | ~0.5 day |
+| 6 | [06-users-and-auth.md](06-users-and-auth.md) | Two roles over HTTP Basic: admins upload and edit, customers browse and listen, nobody browses anonymously | ~0.5 day |
+| **7 (next)** | [07-user-journey.md](07-user-journey.md) | Every signed-in user can see their own sign-in and listening history: when, from what browser and IP, and what they played | ~0.5 day |
 
 Phase 1 is the MVP and it is deliberately end-to-end rather than a backend with no face. It includes
 basic playback, because a music app that cannot play a track is not testable end to end and a
@@ -45,6 +46,12 @@ types were asked for. It jumps the queue because every phase after it needs to k
 playlist without an owner is a shared mutable global, and retrofitting identity underneath a built
 playlist model costs considerably more than the half day it costs now. Phase 1 was deliberately
 built single-user (Q9), so this is the correction, not a change of mind.
+
+**Phase 7 runs next, straight after Phase 6.** Recording who is signed in and what they did with
+it only makes sense once being signed in is a real, distinguishable thing -- Phase 6 is exactly what
+makes a "login" and "which user" meaningful concepts to record. Waiting until after playlists or
+metadata depth would mean redoing the login-tracking wiring against however sessions ended up being
+used elsewhere by then, rather than settling it once, now.
 
 **Docs last but not skipped.** Phase 5 is fixed scope, not buffer. The brief asks explicitly for a
 README and an AGENTS file, so they get their own time rather than the ten minutes left over.
