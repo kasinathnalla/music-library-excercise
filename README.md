@@ -148,6 +148,8 @@ TLS — see [Deliberate limitations](#deliberate-limitations).
 | `AGENTS.md` | Operating context and conventions for this repo, plus how it was actually built |
 | `scripts/check.sh` | Everything a change has to survive, in one command |
 | `scripts/standards-check.py` | The conventions in `AGENTS.md` that a machine can enforce, enforced |
+| `tasks/{branch}.md` | What a branch set out to do, and where it got to |
+| `audits/{branch}.md` | What a branch actually changed, what was decided against, and what was really verified |
 | `docs/ARCHITECTURE.md` | Diagrams: deployment, components, data model, and the key interaction and state flows |
 | `docs/USE-CASES.md` | What the system does from a user's point of view, with the test behind each case |
 | `docs/QUESTIONS.md` | The clarifying questions I would have asked, each with the default I proceeded on |
