@@ -1,0 +1,67 @@
+<section class="detail">
+  <header class="head">
+    <button type="button" class="back" (click)="back.emit()">← Playlists</button>
+    @if (playlist(); as p) {
+      <h2>{{ p.name }}</h2>
+      <button type="button" class="play-all" (click)="playAll()" [disabled]="p.items.length === 0">
+        ▶ Play all
+      </button>
+    }
+  </header>
+
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="muted">Loading…</p>
+  } @else if (playlist(); as p) {
+    @if (p.items.length === 0) {
+      <p class="muted">Nothing in here yet. Add tracks from the library.</p>
+    } @else {
+      <ol class="items">
+        @for (item of p.items; track item.itemId; let i = $index) {
+          <li class="row" [class.playing]="playback.nowPlaying()?.id === item.track.id">
+            <span class="position">{{ i + 1 }}</span>
+
+            <button type="button" class="play" (click)="playFrom(i)" title="Play from here">▶</button>
+
+            <span class="track">
+              <span class="title">{{ item.track.title }}</span>
+              <span class="meta">
+                {{ item.track.artistName ?? 'Unknown artist' }}
+                @if (item.track.albumTitle) {
+                  · {{ item.track.albumTitle }}
+                }
+              </span>
+            </span>
+
+            <span class="duration">{{ formatDuration(item.track.durationMs) }}</span>
+
+            <span class="controls">
+              <button
+                type="button"
+                (click)="moveUp(i)"
+                [disabled]="i === 0 || busy()"
+                [attr.aria-label]="'Move ' + item.track.title + ' up'"
+              >↑</button>
+              <button
+                type="button"
+                (click)="moveDown(i)"
+                [disabled]="i === p.items.length - 1 || busy()"
+                [attr.aria-label]="'Move ' + item.track.title + ' down'"
+              >↓</button>
+              <button
+                type="button"
+                class="remove"
+                (click)="remove(item)"
+                [disabled]="busy()"
+                [attr.aria-label]="'Remove ' + item.track.title"
+              >✕</button>
+            </span>
+          </li>
+        }
+      </ol>
+    }
+  }
+</section>

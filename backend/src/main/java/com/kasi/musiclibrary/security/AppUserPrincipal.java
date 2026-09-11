@@ -1,5 +1,8 @@
 package com.kasi.musiclibrary.security;
 
+import com.kasi.musiclibrary.entity.AppUser;
+import com.kasi.musiclibrary.entity.Role;
+
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

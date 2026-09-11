@@ -5,6 +5,15 @@ has just arrived with no history, and honest about how the code got here.
 
 ---
 
+## Conventions, and how they are enforced
+
+The conventions below are the highest authority in this repository. Where one can be checked by a
+machine, it is: `python3 scripts/standards-check.py` runs in under a second, needs neither Docker
+nor the network, and is the first thing `scripts/check.sh` does. A standard nobody can fail is a
+suggestion.
+
+---
+
 ## What this is
 
 A music library: Spring Boot backend, Angular frontend, PostgreSQL, packaged as one Docker image
@@ -101,7 +110,7 @@ in a diff. Edit structured files with a parser, or rewrite them whole.
 **Do not write signals during template render.** `{{ someMethodThatSetsSignals() }}` throws
 `NG0600`, and the symptom is a form that renders with every field empty rather than an obvious
 error. For writable state derived from an input, use `linkedSignal`. See
-`catalog/track-edit/track-edit.ts`.
+`features/library/components/track-edit/track-edit.ts`.
 
 **The Angular dev server does not always see newly created files.** This repository is in a Google
 Drive folder, and a new component file can produce a persistent `NG2008: Could not find template
@@ -116,18 +125,27 @@ gitignored; do not commit them.
 ## Layout
 
 ```
-backend/src/main/java/com/kasi/musiclibrary/
-  catalog/   Domain: Artist, Album, Track, repositories, TrackDeletionService
-  ingest/    AudioTagReader, AudioFileStore, IngestService, SeedRunner
-  api/       Controllers and response records. No business logic.
-  config/    StorageProperties, OpenApiConfig, SpaForwardingConfig
+backend/src/main/java/com/kasi/musiclibrary/     Organised by layer
+  controller/  AuthController, PlaylistController, StatsController, StreamController, TrackController
+  service/     Business logic, plus the adapters it depends on (AudioTagReader, AudioFileStore, SeedRunner)
+  repository/  Spring Data interfaces and their projections
+  entity/      JPA entities and the enums persisted with them
+  dto/         Every request and response record, plus internal value records
+  exception/   Every application exception, flat
+  advice/      ApiExceptionHandler - the one @RestControllerAdvice
+  security/    SecurityConfig, AppUserPrincipal, DatabaseUserDetailsService
+  config/      StorageProperties, OpenApiConfig, SpaForwardingConfig
 frontend/src/app/
-  welcome/   The landing view
-  catalog/   track.service.ts is the only file that knows API URLs
+  core/        App-wide singletons: interceptors/, models/, services/ (auth, playback)
+  shared/      components/player/ - only what is genuinely shared, not empty scaffolding
+  features/    auth/ library/ playlists/ welcome/, each with components/ models/ services/
+  Each feature's own service is the only file that knows that feature's API URLs.
 ```
 
-Files that change together live together. `api/` holds no logic so the HTTP contract can change
-without disturbing the domain, and `catalog/` knows nothing about HTTP or files.
+Both halves were reorganised after Phase 3: the backend from feature packages to layers
+(DECISIONS 25), the frontend from flat feature folders to core/shared/features (DECISIONS 26).
+Both moved for the same reason - the previous layout was defensible but kept surprising people who
+opened the repository expecting the conventional one.
 
 ---
 

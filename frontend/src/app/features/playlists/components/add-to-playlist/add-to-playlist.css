@@ -1,0 +1,88 @@
+/* Colours come from the tokens in src/styles.css, which redefine themselves under
+   prefers-color-scheme: dark. Hardcoding hex here is what made this panel unreadable in dark
+   mode; scripts/standards-check.py now fails the build if any comes back. */
+
+.panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.25rem;
+}
+
+.label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.choose,
+.create input {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--border-strong);
+  border-radius: calc(var(--radius) - 4px);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.choose:focus-visible,
+.create input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.choose:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.create {
+  display: flex;
+  gap: 0.35rem;
+}
+
+button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--border-strong);
+  border-radius: calc(var(--radius) - 4px);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--surface-raised);
+}
+
+.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--accent);
+  filter: brightness(1.08);
+}
+
+button:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

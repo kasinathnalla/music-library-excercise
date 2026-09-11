@@ -1,0 +1,164 @@
+<header class="library-header">
+  <div class="title-group">
+    <h1>Library</h1>
+    <button type="button" class="back" (click)="back.emit()">← Overview</button>
+  </div>
+  <div class="controls">
+    <label class="visually-hidden" for="search">Search the library</label>
+    <input
+      id="search"
+      type="search"
+      placeholder="Search title, album, or artist"
+      [value]="query()"
+      (input)="onSearch($event)"
+    />
+    @if (auth.isAdmin()) {
+      <label class="upload">
+        Add music
+        <input type="file" accept="audio/*" (change)="onUpload($event)" />
+      </label>
+    }
+  </div>
+</header>
+
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+
+@if (addMessage()) {
+  <p class="status" role="status">{{ addMessage() }}</p>
+}
+
+@if (loading()) {
+  <p class="status" role="status">Loading…</p>
+} @else if (tracks().length === 0) {
+  <p class="empty" data-testid="empty-state">
+    @if (query()) {
+      Nothing matches “{{ query() }}”.
+    } @else {
+      @if (auth.isAdmin()) {
+        Nothing here yet. Use <strong>Add music</strong> to bring in an audio file.
+      } @else {
+        Nothing here yet. An admin needs to add some music.
+      }
+    }
+  </p>
+} @else {
+  <p class="status">
+    {{ total() }} {{ total() === 1 ? 'track' : 'tracks' }}@if (query()) { matching “{{ query() }}”}
+  </p>
+  <table class="tracks">
+    <thead>
+      <tr>
+        <th scope="col" class="col-play"><span class="visually-hidden">Play</span></th>
+        <th scope="col" class="col-hide">#</th>
+        <th scope="col">Title</th>
+        <th scope="col">Artist</th>
+        <th scope="col" class="col-hide">Album</th>
+        <th scope="col">Length</th>
+        @if (auth.isAdmin()) {
+          <th scope="col" class="col-actions"><span class="visually-hidden">Actions</span></th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (track of tracks(); track track.id) {
+        <tr data-testid="track-row" [class.playing]="track.id === playback.nowPlaying()?.id">
+          <td class="col-play">
+            <button
+              type="button"
+              class="play-button"
+              (click)="play(track)"
+              [attr.aria-label]="'Play ' + track.title"
+            >
+              ▶
+            </button>
+            <button
+              type="button"
+              class="add-button"
+              (click)="toggleAddMenu(track)"
+              [attr.aria-expanded]="addingTo() === track.id"
+              [attr.aria-label]="'Add ' + track.title + ' to a playlist'"
+            >
+              ＋
+            </button>
+          </td>
+          <td class="col-hide num">{{ track.trackNumber ?? '' }}</td>
+          <td class="track-title">{{ track.title }}</td>
+          <td>
+            @if (track.artistName) {
+              {{ track.artistName }}
+            } @else {
+              <span class="muted">Unknown artist</span>
+            }
+          </td>
+          <td class="col-hide">
+            @if (track.albumTitle) {
+              {{ track.albumTitle }}
+            } @else {
+              <span class="muted">—</span>
+            }
+          </td>
+          <td class="num">{{ formatDuration(track.durationMs) }}</td>
+          @if (auth.isAdmin()) {
+            <td class="col-actions">
+              @if (pendingDeleteId() === track.id) {
+                <span class="confirm" role="group" [attr.aria-label]="'Confirm removing ' + track.title">
+                  <span class="confirm-label">Remove?</span>
+                  <button
+                    type="button"
+                    class="confirm-yes"
+                    [disabled]="deletingId() === track.id"
+                    (click)="confirmDelete(track)"
+                  >
+                    {{ deletingId() === track.id ? 'Removing…' : 'Yes' }}
+                  </button>
+                  <button type="button" class="confirm-no" (click)="cancelDelete()">No</button>
+                </span>
+              } @else {
+                <span class="row-actions">
+                  <button
+                    type="button"
+                    class="row-action"
+                    (click)="edit(track)"
+                    [attr.aria-label]="'Edit ' + track.title"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="row-action danger"
+                    (click)="askDelete(track)"
+                    [attr.aria-label]="'Remove ' + track.title + ' from the library'"
+                  >
+                    Delete
+                  </button>
+                </span>
+              }
+            </td>
+          }
+        </tr>
+
+        @if (addingTo() === track.id) {
+          <tr class="add-row">
+            <td [attr.colspan]="auth.isAdmin() ? 7 : 6">
+              <app-add-to-playlist
+                [track]="track"
+                (added)="onAddedToPlaylist($event)"
+                (cancelled)="closeAddMenu()"
+              />
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+}
+
+@if (editing(); as track) {
+  <app-track-edit
+    [track]="track"
+    (saved)="onEditSaved($event)"
+    (cancelled)="onEditCancelled()"
+  />
+}

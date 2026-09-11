@@ -1,7 +1,7 @@
 package com.kasi.musiclibrary.api;
 
-import com.kasi.musiclibrary.catalog.TrackRepository;
-import com.kasi.musiclibrary.support.SecuredMockMvcTest;
+import com.kasi.musiclibrary.repository.TrackRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.test.context.support.WithMockUser;

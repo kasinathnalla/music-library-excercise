@@ -1,6 +1,9 @@
 package com.kasi.musiclibrary.security;
 
-import com.kasi.musiclibrary.support.SecuredMockMvcTest;
+import com.kasi.musiclibrary.entity.AppUser;
+import com.kasi.musiclibrary.entity.Role;
+import com.kasi.musiclibrary.repository.AppUserRepository;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;

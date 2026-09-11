@@ -79,50 +79,54 @@ complication with no payoff. They run on the host instead.
 
 ## 3. Backend components
 
-Grouped by responsibility rather than by technical layer, so that files which change together live
-together. Arrows are dependency direction.
+Organised by layer. Arrows are dependency direction; nothing points upward.
 
 ```mermaid
 graph TD
-    subgraph security["security - the authorization matrix"]
+    subgraph security["security - the authorization boundary"]
         SEC["SecurityConfig<br/>the filter chain"]
         DUD["DatabaseUserDetailsService"]
-        USERS["AppUserRepository"]
+        PRIN["AppUserPrincipal<br/>carries the database id"]
     end
 
-    subgraph api["api - HTTP only, no business logic"]
+    subgraph controller["controller - HTTP only, no business logic"]
         TC["TrackController"]
         SC["StreamController"]
         STC["StatsController"]
-        AC["AuthController<br/>sign-in status, registration, logout"]
-        EH["ApiExceptionHandler"]
+        AC["AuthController"]
+        PC["PlaylistController"]
     end
 
-    subgraph ingest["ingest - getting audio in"]
+    subgraph advice["advice"]
+        EH["ApiExceptionHandler<br/>every handled failure, one ErrorResponse"]
+    end
+
+    subgraph service["service - business logic, and the adapters it needs"]
         IS["IngestService"]
+        TUS["TrackUpdateService"]
+        TDS["TrackDeletionService"]
+        PLS["PlaylistService<br/>owner-scoped, every method"]
+        PS["ProvenanceService"]
         ATR["AudioTagReader<br/>the only jaudiotagger caller"]
         AFS["AudioFileStore<br/>hashing, sharding, path guard"]
         SR["SeedRunner"]
     end
 
-    SEC -.->|"authorizes every request<br/>before it reaches api"| TC
+    subgraph repository["repository"]
+        REPO["TrackRepository / AlbumRepository / ArtistRepository<br/>PlaylistRepository / FieldEditRepository / AppUserRepository"]
+    end
+
+    subgraph entity["entity"]
+        ENT["Artist / Album / Track<br/>Playlist / PlaylistItem / FieldEdit / AppUser / Role"]
+    end
+
+    SEC -.->|"authorizes every request<br/>before it reaches a controller"| TC
     SEC -.-> SC
     SEC -.-> AC
+    SEC -.-> PC
     SEC --> DUD
-    DUD --> USERS
-    AC --> USERS
-    TC -->|"records the uploader"| USERS
-
-    subgraph catalog["catalog - the domain"]
-        TUS["TrackUpdateService"]
-        TDS["TrackDeletionService"]
-        REPO["ArtistRepository<br/>AlbumRepository<br/>TrackRepository"]
-        ENT["Artist / Album / Track"]
-    end
-
-    subgraph prov["provenance"]
-        PS["ProvenanceService"]
-    end
+    DUD --> REPO
+    DUD --> PRIN
 
     TC --> IS
     TC --> TUS
@@ -132,6 +136,9 @@ graph TD
     SC --> REPO
     SC --> AFS
     STC --> REPO
+    AC --> REPO
+    PC --> PLS
+
     IS --> ATR
     IS --> AFS
     IS --> REPO
@@ -141,11 +148,21 @@ graph TD
     TDS --> REPO
     TDS --> AFS
     TDS --> PS
+    TDS -->|"drops the track from every<br/>playlist, then closes the gaps"| PLS
+    PLS --> REPO
+    PS --> REPO
     REPO --> ENT
+
+    TC -.->|"throws"| EH
+    PC -.->|"throws"| EH
 
     style ATR fill:#fdf0e8,stroke:#a33224
     style AFS fill:#fdf0e8,stroke:#a33224
 ```
+
+Not shown, because nothing depends on them at runtime: `dto/` (every request and response record,
+plus the internal value records `ParsedTags`, `StoredAudio`, `IngestResult`), `exception/` (all
+seven, flat, each translated by `ApiExceptionHandler`), and `config/`.
 
 The two highlighted classes are the isolation boundaries that matter:
 
@@ -155,13 +172,21 @@ The two highlighted classes are the isolation boundaries that matter:
   `resolve()` rejects paths escaping the media root, because `StreamController` serves whatever it
   returns and path traversal would otherwise be an arbitrary file read.
 
-`catalog` knows nothing about HTTP or files. `api` holds no logic, so the wire format can change
-without disturbing the domain.
+`controller/` holds no logic, so the wire format can change without disturbing the services beneath
+it. `repository/` does data access only. This is a layer split; the packages were feature-based
+(`catalog/`, `ingest/`, `playlist/`) through Phase 3 and moved afterwards — DECISIONS 25 records
+what that bought and what it cost.
 
-**`security`** holds the whole authorization boundary in one place: `SecurityConfig` is the URL
-matrix (who may reach what), and it is deliberately not method-level annotations scattered across
-`ingest` and `catalog`, because `SeedRunner` ingests the bundled tracks at boot with no
-authenticated user present. See D15.
+**`PlaylistService` is the one place authorization is not expressed in `SecurityConfig`, and the
+exception is deliberate.** The filter chain answers "may this role reach this endpoint", and for
+`/api/playlists/**` the answer is yes for both roles, so it carries no matcher of its own. Whether
+a particular *row* belongs to the caller is a different question that no URL rule can express, so
+`PlaylistService` takes the owner id as the first argument of every method and scopes every query
+by it. See D22 — including why a stranger's playlist is 404 rather than 403.
+
+`TrackDeletionService` depends on `PlaylistService` rather than leaving the database's foreign key
+to do the work: the cascade removes the rows but cannot renumber the survivors, so a playlist that
+held positions 0, 1, 2 would be left holding 0, 2.
 
 ---
 
@@ -197,6 +222,22 @@ erDiagram
         bigint file_size
         text content_type
     }
+    APP_USER ||--o{ PLAYLIST : owns
+    PLAYLIST ||--o{ PLAYLIST_ITEM : "ordered by position"
+    TRACK    ||--o{ PLAYLIST_ITEM : "appears in"
+
+    PLAYLIST {
+        uuid id PK
+        uuid owner_id FK "cascade - a playlist has no meaning without its owner"
+        text name "unique on (owner_id, lower(name))"
+        timestamptz updated_at "what the list view orders by"
+    }
+    PLAYLIST_ITEM {
+        uuid id PK "own id - the same track may appear twice"
+        uuid playlist_id FK
+        uuid track_id FK "cascade"
+        integer position "unique per playlist, DEFERRABLE"
+    }
     FIELD_EDIT {
         uuid id PK
         text entity_type
@@ -214,6 +255,17 @@ Three things in this model are load-bearing:
    constraint violation and makes seeding idempotent for free.
 3. **`field_edit` is keyed per field**, not per track, so correcting a title does not mark the whole
    track as untouchable by future enrichment.
+
+Two more, added with playlists:
+
+4. **`playlist_item.position` is unique per playlist, and the constraint is `deferrable initially
+   deferred`.** Every real reorder passes through a state that collides with itself — swapping 1
+   and 2 means something briefly sits where another row still is. Deferring the check to commit
+   time is what lets the implementation be an ordinary loop. Postgres can defer a table
+   *constraint* but not a unique *index*, which is why it is an `alter table`.
+5. **`playlist_item` has its own id** rather than being keyed by `(playlist_id, track_id)`,
+   because the same track may legitimately appear twice in one playlist and "remove the second
+   copy" has to be expressible.
 
 `track_artist` exists but is unmapped in v1. Per-track credits are needed first by richer metadata
 editing; the table is there so adding them is not a migration against live data.
@@ -478,3 +530,59 @@ stateDiagram-v2
         reconciliation, so it is not left behind.
     end note
 ```
+
+---
+
+## 11. Playlists: ownership and order
+
+Two things make this flow different from the rest of the system. Every query is scoped to one
+person, and the order of the rows is itself data that the user edits.
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant F as SecurityConfig
+    participant C as PlaylistController
+    participant S as PlaylistService
+    participant DB as PostgreSQL
+
+    B->>F: PUT /api/playlists/{id}/items<br/>(session cookie + X-XSRF-TOKEN)
+    F->>F: anyRequest().authenticated()<br/>no matcher of its own - both roles may keep playlists
+    F->>C: AppUserPrincipal (carries the database id)
+    C->>S: reorder(principal.id(), playlistId, itemIds)
+    S->>DB: select ... where p.id = ? and p.ownerId = ?
+    alt no row for this owner
+        DB-->>S: empty
+        S-->>C: PlaylistNotFoundException
+        C-->>B: 404 - never 403, which would confirm the id exists
+    else owned
+        S->>S: reject anything that is not a permutation<br/>of the current items (400)
+        S->>DB: rewrite every position, one transaction
+        Note over DB: positions collide mid-transaction;<br/>the unique constraint is deferred to commit
+        DB-->>S: committed
+        S-->>C: the playlist, items fetched
+        C-->>B: 200 with the new order
+    end
+```
+
+**Ownership is a service concern, not a filter-chain one.** `SecurityConfig` answers "may this role
+reach this endpoint"; every method on `PlaylistService` takes the owner id first and there is no
+overload that omits it, so the check cannot be skipped by forgetting a parameter. A playlist
+belonging to someone else is indistinguishable from one that does not exist (D22).
+
+**Reorder sends the whole order, not a move** (D23). It makes the request idempotent, removes any
+need to reconcile two tabs editing the same list, and is what the deferred constraint above exists
+to support. The cost — a client could send a list that omits an item — is paid by refusing anything
+that is not a permutation of the current contents, so a reorder can never silently lose a track.
+
+**Reading a playlist fetches four levels in one query.** With `open-in-view` off, the response
+touches items, their tracks, each track's album and its artist, so
+`PlaylistRepository.findByIdAndOwnerIdWithItems` joins all of them eagerly — every one a **left**
+join, because a playlist holding a track with no album must still return that track.
+
+**Playback is shared client state.** The queue and the single `<audio>` element live in
+`core/services/playback.service.ts` and one `<app-player>` in `shared/components/player/`, rendered
+from `app.ts` rather than inside either view. Two
+components each owning an audio element is not a layout problem, it is two tracks playing at once
+(D24). This is a deliberate early slice of Phase 2; shuffle, repeat, previous, and a visible
+editable queue are still that phase's work.

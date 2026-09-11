@@ -1,6 +1,9 @@
 package com.kasi.musiclibrary.ingest;
 
 import com.kasi.musiclibrary.config.StorageProperties;
+import com.kasi.musiclibrary.dto.StoredAudio;
+import com.kasi.musiclibrary.service.AudioFileStore;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

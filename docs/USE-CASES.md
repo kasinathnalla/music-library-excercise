@@ -243,7 +243,7 @@ decision.
 |---|---|---|
 | **Write tags back to audio files** | Destructive writes to files people care about; database-only is safe and reversible | Q13, D10 |
 | **Bulk edit across a selection** | Needs a preview step to be safe; one track at a time first | Q14 |
-| **Playlists** | Phase 3 of the roadmap | ROADMAP |
+| **Playlists** | Built in Phase 3: per-user, ordered, reorderable | DECISIONS 22-24 |
 | **Queue, shuffle, gapless** | Phase 2; basic playback was pulled into the MVP so the system is demonstrable | ROADMAP |
 | ~~Multiple users and sign-in~~ | Built in Phase 6: two roles, HTTP Basic turned into a session, customer self-registration | Q9, `06-users-and-auth.md` |
 | **Automated enrichment from MusicBrainz** | The provenance it would need already exists and is enforced | Q7, Q15 |

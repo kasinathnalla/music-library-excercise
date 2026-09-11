@@ -1,0 +1,325 @@
+:host {
+  display: block;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 8rem;
+}
+
+.library-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+}
+
+.title-group h1 {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 640;
+  letter-spacing: -0.02em;
+}
+
+.back {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.back:hover {
+  color: var(--text);
+}
+
+.controls {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+input[type='search'] {
+  padding: 0.5rem 0.75rem;
+  min-width: 17rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+}
+
+input[type='search']::placeholder {
+  color: var(--text-muted);
+}
+
+.upload {
+  padding: 0.5rem 1rem;
+  background: var(--accent);
+  color: var(--accent-text);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.upload:hover {
+  filter: brightness(1.08);
+}
+
+.upload input[type='file'] {
+  display: none;
+}
+
+.status,
+.error {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0.25rem 0 1rem;
+}
+
+.error {
+  color: var(--danger);
+  background: var(--surface);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.85rem;
+}
+
+.empty {
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.tracks {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.tracks th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.tracks td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tracks tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tracks tbody tr:hover {
+  background: var(--surface-raised);
+}
+
+.tracks tr.playing {
+  background: var(--accent-soft);
+}
+
+.tracks tr.playing .track-title {
+  font-weight: 600;
+}
+
+.col-play {
+  width: 2.75rem;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.play-button {
+  width: 1.9rem;
+  height: 1.9rem;
+  display: grid;
+  place-items: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.65rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.play-button:hover {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.player {
+  position: fixed;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem clamp(1rem, 5vw, 3rem);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.now-playing {
+  min-width: 0;
+  flex: 0 1 16rem;
+}
+
+.now-playing .label {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.now-playing .name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player audio {
+  flex: 1;
+  min-width: 0;
+  height: 2.25rem;
+}
+
+@media (max-width: 620px) {
+  .col-hide {
+    display: none;
+  }
+
+  input[type='search'] {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .controls {
+    width: 100%;
+  }
+
+  .now-playing {
+    display: none;
+  }
+}
+
+.col-actions {
+  width: 9.5rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.row-actions {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+/*
+ * Always visible. These were revealed on row hover, which made them undiscoverable:
+ * a control you cannot see reads as a missing feature, not a tidy interface.
+ */
+.row-action {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.row-action:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.row-action.danger:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--surface);
+}
+
+.confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.confirm-label {
+  color: var(--text-muted);
+}
+
+.confirm-yes,
+.confirm-no {
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+
+.confirm-yes {
+  background: var(--danger);
+  border: 1px solid var(--danger);
+  color: var(--surface);
+}
+
+.confirm-yes:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.confirm-no {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+}
+
+/* --- adding a track to a playlist ------------------------------------------------ */
+
+.add-button {
+  margin-left: 0.25rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
+.add-button:hover {
+  color: var(--accent);
+}
+
+.add-row td {
+  background: var(--surface-raised);
+}

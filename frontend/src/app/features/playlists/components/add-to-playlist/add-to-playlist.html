@@ -1,0 +1,46 @@
+<div class="panel">
+  <label class="label" [attr.for]="selectId()">Add “{{ track().title }}” to</label>
+
+  <select
+    class="choose"
+    [attr.id]="selectId()"
+    [value]="choice()"
+    [disabled]="busy() || loading()"
+    (change)="onChoose($event)"
+  >
+    @if (loading()) {
+      <option value="">Loading your playlists…</option>
+    } @else {
+      <option value="">Choose a playlist…</option>
+      @for (playlist of playlists(); track playlist.id) {
+        <option [value]="playlist.id">
+          {{ playlist.name }} ({{ playlist.trackCount }})
+        </option>
+      }
+      <option [value]="newPlaylistValue">+ New playlist…</option>
+    }
+  </select>
+
+  @if (creatingNew()) {
+    <form class="create" (submit)="$event.preventDefault(); createAndAdd()">
+      <label class="visually-hidden" [attr.for]="nameId()">New playlist name</label>
+      <input
+        [attr.id]="nameId()"
+        type="text"
+        placeholder="Playlist name"
+        autocomplete="off"
+        [value]="newName()"
+        (input)="onNewNameInput($event)"
+      />
+      <button type="submit" class="primary" [disabled]="!newName().trim() || busy()">
+        {{ busy() ? 'Adding…' : 'Create & add' }}
+      </button>
+    </form>
+  }
+
+  <button type="button" class="cancel" (click)="cancelled.emit()">Cancel</button>
+
+  @if (error()) {
+    <span class="error" role="alert">{{ error() }}</span>
+  }
+</div>

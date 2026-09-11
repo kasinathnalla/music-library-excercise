@@ -1,15 +1,18 @@
 import { Component, inject, signal } from '@angular/core';
-import { TrackList } from './catalog/track-list/track-list';
-import { Welcome } from './welcome/welcome';
-import { Login } from './auth/login/login';
-import { Register } from './auth/register/register';
-import { TrackService } from './catalog/track.service';
-import { AuthService } from './auth/auth.service';
-import { LibraryStats } from './catalog/stats.model';
+import { TrackList } from './features/library/components/track-list/track-list';
+import { Welcome } from './features/welcome/components/welcome/welcome';
+import { Login } from './features/auth/components/login/login';
+import { Register } from './features/auth/components/register/register';
+import { PlaylistList } from './features/playlists/components/playlist-list/playlist-list';
+import { PlaylistDetail } from './features/playlists/components/playlist-detail/playlist-detail';
+import { Player } from './shared/components/player/player';
+import { TrackService } from './features/library/services/track.service';
+import { AuthService } from './core/services/auth.service';
+import { LibraryStats } from './features/library/models/stats.model';
 
 @Component({
   selector: 'app-root',
-  imports: [TrackList, Welcome, Login, Register],
+  imports: [TrackList, Welcome, Login, Register, PlaylistList, PlaylistDetail, Player],
   styleUrl: './app.css',
   template: `
     @if (view() === 'login') {
@@ -19,6 +22,20 @@ import { LibraryStats } from './catalog/stats.model';
     } @else {
       @if (auth.user(); as user) {
         <div class="account-bar">
+          <nav class="sections">
+            <button
+              type="button"
+              class="section"
+              [class.current]="view() === 'library'"
+              (click)="open()"
+            >Library</button>
+            <button
+              type="button"
+              class="section"
+              [class.current]="view() === 'playlists' || view() === 'playlist'"
+              (click)="showPlaylists()"
+            >Playlists</button>
+          </nav>
           <span class="who">
             {{ displayName(user) }}
             <span class="role" [class.admin]="user.role === 'ADMIN'">
@@ -31,9 +48,21 @@ import { LibraryStats } from './catalog/stats.model';
 
       @if (view() === 'welcome') {
         <app-welcome [stats]="stats()" (enter)="open()" />
+      } @else if (view() === 'playlists') {
+        <app-playlist-list (open)="openPlaylist($event)" (back)="showWelcome()" />
+      } @else if (view() === 'playlist') {
+        @if (openPlaylistId(); as playlistId) {
+          <app-playlist-detail [playlistId]="playlistId" (back)="showPlaylists()" />
+        }
       } @else {
         <app-track-list (back)="showWelcome()" (libraryChanged)="loadStats()" />
       }
+
+      <!--
+        Rendered here, once, rather than inside a view: a player that stopped when you opened a
+        different screen would be worse than no player at all (D24).
+      -->
+      <app-player />
     }
   `,
 })
@@ -41,8 +70,10 @@ export class App {
   private readonly trackService = inject(TrackService);
   protected readonly auth = inject(AuthService);
 
-  protected readonly view = signal<'login' | 'register' | 'welcome' | 'library'>('login');
+  protected readonly view =
+    signal<'login' | 'register' | 'welcome' | 'library' | 'playlists' | 'playlist'>('login');
   protected readonly stats = signal<LibraryStats | null>(null);
+  protected readonly openPlaylistId = signal<string | null>(null);
 
   constructor() {
     // Ask whether a session is already valid before doing anything else. Loading stats first
@@ -69,6 +100,7 @@ export class App {
 
   private toLogin(): void {
     this.stats.set(null);
+    this.openPlaylistId.set(null);
     this.view.set('login');
   }
 
@@ -79,6 +111,16 @@ export class App {
 
   protected open(): void {
     this.view.set('library');
+  }
+
+  protected showPlaylists(): void {
+    this.openPlaylistId.set(null);
+    this.view.set('playlists');
+  }
+
+  protected openPlaylist(playlistId: string): void {
+    this.openPlaylistId.set(playlistId);
+    this.view.set('playlist');
   }
 
   protected showWelcome(): void {

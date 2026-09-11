@@ -1,6 +1,5 @@
 package com.kasi.musiclibrary.security;
 
-import com.kasi.musiclibrary.support.SecuredMockMvcTest;
 import org.junit.jupiter.api.Test;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;

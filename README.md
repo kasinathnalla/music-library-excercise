@@ -123,6 +123,13 @@ alone. Edits change the library only; the tags inside your audio files are never
 album with no remaining tracks is removed, and an artist credited on no remaining albums goes with
 it. This is permanent; there is no undo in this version.
 
+**Playlists.** Every signed-in user keeps their own ordered playlists: create one, add tracks to
+it from the library, move entries up and down, remove them, and play the whole thing straight
+through — the player advances to the next track on its own. Playlists are private to the person who
+made them, and a playlist belonging to someone else answers `404`, not `403`, so the API never
+confirms that an id it will not show you exists. Deleting a track from the library removes it from
+every playlist that held it and closes the gap in their order.
+
 **Accounts and roles.** Two roles: an **admin** curates the library (upload, edit, delete); a
 **customer** browses, searches, and listens, and nothing else. Two accounts of each are seeded on
 first boot, and anyone can create a customer account from the sign-in screen — admin accounts are
@@ -138,18 +145,23 @@ TLS — see [Deliberate limitations](#deliberate-limitations).
 | File | What it is |
 |---|---|
 | `README.md` | This file: what it is and how to run it |
-| `AGENTS.md` | Operating context for AI agents working in this repo, plus how it was actually built |
+| `AGENTS.md` | Operating context and conventions for this repo, plus how it was actually built |
+| `scripts/check.sh` | Everything a change has to survive, in one command |
+| `scripts/standards-check.py` | The conventions in `AGENTS.md` that a machine can enforce, enforced |
 | `docs/ARCHITECTURE.md` | Diagrams: deployment, components, data model, and the key interaction and state flows |
 | `docs/USE-CASES.md` | What the system does from a user's point of view, with the test behind each case |
 | `docs/QUESTIONS.md` | The clarifying questions I would have asked, each with the default I proceeded on |
 | `docs/plans/ROADMAP.md` | The phase plan, why it is ordered that way, and what gets cut first |
 | `docs/plans/01-foundation-and-library.md` | The full Phase 1 implementation plan, task by task |
+| `docs/plans/03-playlists.md` | The playlists implementation plan: per-user ownership, reordering, and the deferred constraint that makes it work |
 | `docs/plans/06-users-and-auth.md` | The users-and-roles implementation plan: why Basic auth becomes a session, and why editing is admin-only |
+| `docs/plans/07-user-journey.md` | The per-user sign-in and listening history plan. Written, not yet built |
 | `docs/api/openapi.json` / `.yaml` | The generated OpenAPI 3.1 spec, committed so it can be read without running anything |
 | `docs/DECISIONS.md` | The design decisions that had real alternatives, and why each went the way it did |
 | `backend/src/main/resources/seed-audio/CREDITS.md` | Where the bundled audio came from |
 
-Start with `docs/ARCHITECTURE.md` for how it fits together, `docs/USE-CASES.md` for what it does,
+Start with `AGENTS.md` for the conventions and the traps, then `docs/ARCHITECTURE.md` for how it
+fits together, `docs/USE-CASES.md` for what it does,
 `docs/QUESTIONS.md` for what I thought was ambiguous about the brief, and `docs/DECISIONS.md` for why
 the code looks the way it does.
 

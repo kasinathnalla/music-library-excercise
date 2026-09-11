@@ -281,3 +281,131 @@ what's wrong in one pass instead of one rejection at a time.
 Two things this is not: an address model (it is one free-text field, not street/city/state/zip),
 and an age check (date of birth is validated only as being in the past, not compared against a
 minimum age). Both are easy to add later without a migration, since the column already exists.
+
+<!--
+19, 20 and 21 are reserved by docs/plans/07-user-journey.md, which was written before this phase
+was built. Playlists took 22 onwards rather than renumbering an already-reviewed plan. The gap
+closes when Phase 7 lands.
+-->
+
+## 22. A playlist you do not own is 404, and ownership is checked in the service
+
+**Alternatives:** express ownership in `SecurityConfig` like every other rule; return 403 for
+another user's playlist.
+
+D15 puts the authorization matrix in the filter chain, and this phase does not weaken that —
+`/api/playlists/**` is covered by `anyRequest().authenticated()`, with no matcher of its own,
+because both roles should be able to keep playlists. What a URL-and-method rule cannot express is
+whether a particular *row* is yours. That is a different question from "may this role reach this
+endpoint", and it is answered in `PlaylistService`, which takes the caller's id as the first
+argument of every method and scopes every query by it. There is deliberately no overload that
+omits it, so the check cannot be skipped by forgetting a parameter.
+
+The status code is the more interesting half. A 403 would be the intuitive answer and it is the
+wrong one: it confirms the id exists, which lets someone map the shape of another user's library
+one guess at a time. 404 leaks nothing and is also the literally true answer to what was asked —
+show me *my* playlist with this id; there isn't one. `PlaylistControllerTest` asserts it for read,
+rename, delete, add and reorder, because a hole in any one of them is the whole hole.
+
+## 23. Reordering sends the entire order, not a move
+
+**Alternatives:** `POST /items/{itemId}/move?to=3`, or a pair of swap endpoints.
+
+`PUT /api/playlists/{id}/items` takes the complete ordered list of item ids and rewrites every
+position. A move endpoint is smaller on the wire and worse everywhere else: two tabs reordering
+the same playlist interleave into an order neither person asked for, and a retried request moves
+the item a second time. Sending the whole order is idempotent, needs no conflict resolution, and
+makes the server's work one transaction with no merge logic in it. These lists are a handful of
+rows; bytes are not the constraint.
+
+The cost is that a client could send a list that omits an item, which would be data loss
+disguised as a sort. So the server refuses any list that is not a permutation of the playlist's
+current items, with a 400.
+
+This is also why `playlist_item_position_key` is `deferrable initially deferred` in V6. Rewriting
+positions passes through states that collide with themselves — swapping 1 and 2 means something
+briefly sits where another row still is. Deferring the check to commit time is what lets the
+implementation be the obvious loop rather than a dance through negative temporary positions.
+
+## 24. One audio element, owned by a service, not by the library view
+
+**Alternatives:** give the playlist view its own `<audio>`; wait for Phase 2 and build the full
+queue first.
+
+Playback lived inside `catalog/track-list`: a `nowPlayingUrl` signal and an `<audio>` in that
+component's footer. A playlist that advances on its own needs the same element plus a notion of
+what comes next, and a second `<audio>` elsewhere in the application is not a layout problem, it
+is two tracks playing at once.
+
+So playback moved to a root-provided service (now `core/services/playback.service.ts`) with a
+single `<app-player>` (now `shared/components/player/`), rendered once
+from `app.ts` so that switching between the library and a playlist does not stop the music.
+
+That is Phase 2 work arriving early and deliberately only a sliver of it: a queue, an index into
+it, and advance-on-ended. Shuffle, repeat, previous, and a visible editable queue remain Phase 2.
+One wrinkle worth recording: changing `[src]` on an existing `<audio>` does not restart playback,
+because `autoplay` applies only to the first load. `Player` therefore calls `load()` and `play()`
+in an effect; without it the queue advances silently and nothing is heard.
+
+## 25. Backend packages are organised by layer, not by feature
+
+**Alternatives:** keep the feature packages (`catalog/`, `ingest/`, `playlist/`, `provenance/`,
+`api/`); split only the new code and leave the rest.
+
+Phase 1 through Phase 3 were built feature-first, with each package holding its own entities,
+repositories, service and exceptions, and `api/` holding controllers and response records. The
+argument for it was real and is recorded in earlier revisions of AGENTS.md: files that change
+together live together, and a feature can be read top to bottom in one directory.
+
+It was moved to `controller/`, `service/`, `repository/`, `entity/`, `dto/`, `exception/`,
+`advice/`, `security/`, `config/` because the feature layout kept surprising people who opened the
+repository expecting the conventional Spring layout — looking for `exception/` and finding five
+exception classes scattered across two feature packages, looking for the models and finding them in
+four. A structure that is defensible but consistently surprising costs more in orientation than it
+saves in cohesion, and this is a codebase meant to be read by people who did not write it.
+
+What was given up, honestly: a feature is no longer one directory. Adding a playlist field now
+touches `entity/`, `dto/`, and possibly `repository/` rather than one folder, and nothing in the
+package structure stops `service/` growing into a drawer. The mitigations are that
+`service/` classes stay under ~200 lines (`code-quality`), and that the thing the feature layout
+really protected — `api/` holding no business logic — is now enforced by having exactly one
+`@RestControllerAdvice` and controllers that only validate, delegate and map.
+
+Conventional packages this project deliberately still does **not** have: `client/` (no outbound
+integrations yet), `mapper/` (mapping lives in static `from(...)` factories on the response records),
+`consumer/`/`producer/` (no messaging), `scheduler/` (nothing on a timer), `util/`, and
+`service/impl/` (no interface with a single implementation and no seam to defend).
+
+The frontend was reorganised too, for the same reason and in the same pass — see DECISIONS 26.
+
+## 26. The frontend is core / shared / features, not flat feature folders
+
+**Alternatives:** keep the flat layout (`auth/`, `catalog/`, `playlists/`, `playback/`, `welcome/`
+directly under `src/app/`); adopt the `core` / `shared` / **`pages`** structure verbatim.
+
+The frontend was flat and feature-first: each feature a directory under `src/app/` holding its
+service, models and components together. That is a real convention and it worked — an Angular
+feature folder already co-locates the things a feature is made of, which is the problem the backend
+layer split had to be argued for.
+
+It moved anyway, for one reason: consistency of expectation. DECISIONS 25 moved the backend because
+a defensible-but-surprising layout costs more in orientation than it saves in cohesion. Leaving the
+frontend flat while the backend went conventional would have meant two different answers to "where
+does this go?" in one repository, and a reader would have to learn which half they were in first.
+
+Two deliberate differences from the conventional Angular template:
+
+**`features/`, not `pages/`.** There is no router in this application — `app.ts` switches views
+with a signal — so a folder called `pages/` would name something that does not exist. `features/`
+is the other mainstream convention and describes what is actually there. If a router arrives, the
+rename is mechanical.
+
+**`shared/` and `core/` hold only what is real.** `shared/` has `components/player/` and nothing
+else; there is no `directives/`, `pipes/`, or `utils/`, and `core/` has no `guards/`. Creating six
+empty directories because a template lists them teaches a reader that the structure is decoration.
+They get created when something needs them.
+
+What this cost, honestly: imports got deeper. `track-list.ts` reaching the auth service is now
+`../../../../core/services/auth.service`. TypeScript path aliases (`@core/*`, `@features/*`) would
+fix that and are the usual next step; they are not in place yet because adding them touches
+`tsconfig.json` and could not be verified in the environment this move was made in.

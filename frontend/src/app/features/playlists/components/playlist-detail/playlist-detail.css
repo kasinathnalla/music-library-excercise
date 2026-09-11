@@ -1,0 +1,126 @@
+.detail {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+h2 {
+  margin: 0;
+  flex: 1;
+  font-size: 1.5rem;
+}
+
+button {
+  font: inherit;
+}
+
+.back,
+.play-all {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+.play-all {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.play-all:disabled {
+  border-color: var(--border-strong);
+  background: var(--border-strong);
+  cursor: not-allowed;
+}
+
+.items {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  counter-reset: item;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.row.playing {
+  background: var(--accent-soft);
+}
+
+.position {
+  width: 1.5rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.play {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.track {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  font-weight: 500;
+}
+
+.meta,
+.duration,
+.muted {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.duration {
+  font-variant-numeric: tabular-nums;
+}
+
+.controls {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.controls button {
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+.controls button:disabled {
+  color: var(--border-strong);
+  cursor: not-allowed;
+}
+
+.remove:not(:disabled) {
+  color: var(--danger);
+}
+
+.error {
+  padding: 0.6rem;
+  border-radius: 4px;
+  background: var(--surface-raised);
+  color: var(--danger);
+}

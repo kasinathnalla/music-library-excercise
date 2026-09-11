@@ -1,0 +1,126 @@
+:host {
+  display: block;
+  max-width: 26rem;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+  line-height: 1.15;
+}
+
+.lede {
+  margin: 0 0 2rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+input {
+  margin-bottom: 0.9rem;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.cta {
+  margin-top: 0.35rem;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--surface);
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cta[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.error {
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.9rem;
+  color: var(--danger);
+  background: var(--surface-raised);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+}
+
+.demo-accounts {
+  margin-top: 2.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.demo-accounts summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.demo-accounts table {
+  margin-top: 0.75rem;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.demo-accounts th,
+.demo-accounts td {
+  text-align: left;
+  padding: 0.35rem 0.5rem 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.demo-accounts .note {
+  margin: 0.75rem 0 0;
+  color: var(--text-muted);
+}
+
+.switch {
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.link-button {
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}

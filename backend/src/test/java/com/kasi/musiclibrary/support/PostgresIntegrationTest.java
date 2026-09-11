@@ -1,6 +1,5 @@
 package com.kasi.musiclibrary.support;
 
-import com.kasi.musiclibrary.TestcontainersConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 

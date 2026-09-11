@@ -13,7 +13,7 @@ it runs out at the end, and what exists is coherent rather than half-wired.
 |---|---|---|---|
 | **1 (MVP)** | [01-foundation-and-library.md](01-foundation-and-library.md) | `docker compose up` on a clean clone serves a searchable library that ingests uploads and plays audio | ~1 day |
 | 2 | 02-playback-depth.md | Queue, next and previous, shuffle, keyboard transport, gapless where the format allows | ~0.5 day |
-| 3 | 03-playlists.md | Create, reorder, and play playlists | ~0.25 day |
+| **3 (built)** | [03-playlists.md](03-playlists.md) | Create, reorder, and play per-user playlists | ~0.25 day |
 | 4 | 04-metadata-editing.md | Per-track and bulk editing with per-field provenance and undo | ~0.5 day |
 | 5 | 05-docs-and-polish.md | README, AGENTS.md, ADRs, large-library seed, accessibility pass | ~0.25 day |
 | 6 | [06-users-and-auth.md](06-users-and-auth.md) | Two roles over HTTP Basic: admins upload and edit, customers browse and listen, nobody browses anonymously | ~0.5 day |
@@ -62,7 +62,7 @@ If the budget compresses, the cuts happen in this order, and each one gets recor
 under what I left out and why:
 
 1. Bulk metadata editing preview (Phase 4) degrades to per-track editing only
-2. Playlist reordering (Phase 3) degrades to append and remove
+2. ~~Playlist reordering (Phase 3) degrades to append and remove~~ — not taken; reordering shipped
 3. The large-library seed script (Phase 5) degrades to a documented claim rather than a demonstration
 
 The reproducible build, real playback, and per-field provenance do not get cut. They are the parts

@@ -1,0 +1,13 @@
+@if (playback.streamUrl(); as url) {
+  <div class="player">
+    <div class="now-playing">
+      <div class="label">Now playing</div>
+      <div class="title">{{ playback.nowPlaying()?.title }}</div>
+      @if (playback.upNext() > 0) {
+        <div class="up-next">{{ playback.upNext() }} more in this queue</div>
+      }
+    </div>
+    <audio #audio [src]="url" controls autoplay (ended)="playback.next()"></audio>
+    <button type="button" class="stop" (click)="playback.stop()">Stop</button>
+  </div>
+}

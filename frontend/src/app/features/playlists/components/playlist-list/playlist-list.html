@@ -1,0 +1,53 @@
+<section class="playlists">
+  <header class="head">
+    <button type="button" class="back" (click)="back.emit()">← Back</button>
+    <h2>Your playlists</h2>
+  </header>
+
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  <form class="create" (submit)="$event.preventDefault(); create()">
+    <label for="new-playlist" class="visually-hidden">New playlist name</label>
+    <input
+      id="new-playlist"
+      type="text"
+      placeholder="New playlist name"
+      [value]="newName()"
+      (input)="onNameInput($event)"
+    />
+    <button type="submit" [disabled]="!newName().trim() || creating()">
+      {{ creating() ? 'Creating…' : 'Create' }}
+    </button>
+  </form>
+
+  @if (loading()) {
+    <p class="muted">Loading…</p>
+  } @else if (playlists().length === 0) {
+    <p class="muted">No playlists yet. Make one above, then add tracks from the library.</p>
+  } @else {
+    <ul class="list">
+      @for (playlist of playlists(); track playlist.id) {
+        <li class="row">
+          <button type="button" class="name" (click)="open.emit(playlist.id)">
+            <span class="title">{{ playlist.name }}</span>
+            <span class="count">
+              {{ playlist.trackCount }} {{ playlist.trackCount === 1 ? 'track' : 'tracks' }}
+            </span>
+          </button>
+
+          @if (pendingDeleteId() === playlist.id) {
+            <span class="confirm">
+              Delete “{{ playlist.name }}”?
+              <button type="button" class="danger" (click)="confirmDelete(playlist.id)">Delete</button>
+              <button type="button" (click)="cancelDelete()">Cancel</button>
+            </span>
+          } @else {
+            <button type="button" class="delete" (click)="askDelete(playlist.id)">Delete</button>
+          }
+        </li>
+      }
+    </ul>
+  }
+</section>

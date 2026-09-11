@@ -158,7 +158,7 @@ backend/src/main/java/com/kasi/musiclibrary/
   security/
     SecurityConfig.java             MODIFIED: registers HttpSessionEventPublisher
 backend/src/main/resources/db/migration/
-  V6__user_journey.sql
+  V7__user_journey.sql
 backend/src/test/java/com/kasi/musiclibrary/
   journey/
     UserAgentSummarizerTest.java    Plain unit test. No Spring, no database.
@@ -178,7 +178,7 @@ frontend/src/app/
 
 ## Task 1: The schema
 
-**Files:** `backend/src/main/resources/db/migration/V6__user_journey.sql`
+**Files:** `backend/src/main/resources/db/migration/V7__user_journey.sql`
 
 - [ ] **Step 1: Write the migration**
 
@@ -215,7 +215,7 @@ create index track_play_session_idx on track_play (user_session_id, played_at);
 
 - [ ] **Step 2: Verify**
 
-`docker compose down -v && docker compose up -d db`, boot the backend, confirm Flyway applies V6
+`docker compose down -v && docker compose up -d db`, boot the backend, confirm Flyway applies V7
 cleanly on top of V1-V5.
 
 ---
@@ -301,7 +301,7 @@ place to catch an ordering mistake before it's buried under Spring wiring.
 
 `userId` is a raw `UUID`, not a `@ManyToOne` -- matching `Track.uploadedBy`'s precedent: open-in-view
 is off, and an association here is one more lazy proxy a response could touch after the session
-closes. Per AGENTS.md, `ddl-auto` is `validate`, so every column here must agree with V6 exactly.
+closes. Per AGENTS.md, `ddl-auto` is `validate`, so every column here must agree with V7 exactly.
 
 - [ ] **Step 2: `TrackPlay`**
 
